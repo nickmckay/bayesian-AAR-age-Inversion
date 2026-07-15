@@ -1,0 +1,51 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+name: render
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: render-${{ github.event_name != 'pull_request' || github.run_id }}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rmarkdown, any::knitr, any::ggplot2, any::dplyr
+          needs: check
+
+      - name: Render notebook
+        run: |
+          dir.create("docs")
+          rmarkdown::render("np_bayesian_age_validation.Rmd",
+                             output_file = "index.html",
+                             output_dir = "docs")
+        shell: Rscript {0}
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          clean: true
+          branch: gh-pages
+          folder: docs
+          single-commit: true

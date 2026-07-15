@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*_cache/
+*_files/
+docs/
+index.html
+np_bayesian_age_validation.knit.md
+.DS_Store
