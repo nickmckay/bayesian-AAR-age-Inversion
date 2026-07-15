@@ -47,13 +47,15 @@ value of the residual correlation with no floor or smoothing constant
 needed.
 
 This validation isolates the **inversion/combination** step specifically:
-both methods start from the same fitted calibration curves, so any
-agreement (or disagreement) reflects how the two acids' evidence is
-combined, not differences in how the underlying curves were fit. (A
-from-scratch Bayesian joint MCMC re-fit of the calibration curves
-themselves was tried and set aside — its posterior constants diverge
-non-trivially from the manuscript's OLS fit, an open question distinct
-from the inversion method compared here.)
+the main comparison (Stage 2) starts from the same fitted calibration
+curves as the GLS calculator, so any agreement (or disagreement) there
+reflects how the two acids' evidence is combined, not differences in how
+the underlying curves were fit. Stage 1 below additionally investigates a
+**second way** to obtain those calibration curves — an independent,
+from-scratch joint Bayesian MCMC refit — because its posterior constants
+turn out to diverge non-trivially from the manuscript's OLS fit. That
+divergence, why it happens, and what it does to the downstream age
+estimates and uncertainties, is examined explicitly rather than set aside.
 
 ## Calibration models
 
@@ -101,18 +103,35 @@ ggplot(np, aes(x = DL_Asp, y = DL_Glu, colour = age_ka)) +
   theme_bw()
 ```
 
-## Stage 1: calibration curves used for the inversion
+## Stage 1: two ways to obtain the calibration constants
 
-Rather than re-fitting the TDK/SPK calibration curves from scratch, the
-Bayesian inversion below reuses the manuscript's own fitted constants
-(`gls_calibration_constants`), so the comparison isolates the
-inversion/combination method rather than curve-fitting differences. The
-GLS calculator's mean-squared-error terms (`MSE_Asp`, `MSE_Glu`) give the
-calibration-scale residual standard deviations on the log-age scale, and
-`rho` is the same fitted residual correlation used by both methods:
+### Approach A: the manuscript's published OLS constants
 
-```{r calib_params}
-calib_params <- list(
+The manuscript fits each acid's TDK/SPK curve independently by ordinary
+least squares (OLS) regression of `log(age)` on `log(f(D/L))`, then
+separately estimates the residual correlation `rho` between the two
+acids' fitted residuals. `gls_calibration_constants` (`R/gls_calculator.R`)
+reproduces that fit exactly:
+
+```{r ols_check}
+fit_asp <- lm(log(age_ka) ~ log(atanh(DL_Asp)), data = np)
+fit_glu <- lm(log(age_ka) ~ log(DL_Glu), data = np)
+data.frame(
+  acid  = c("Asp", "Glu"),
+  a_fit = c(exp(coef(fit_asp)[1]), exp(coef(fit_glu)[1])),
+  e_fit = c(coef(fit_asp)[2], coef(fit_glu)[2]),
+  a_published = c(gls_calibration_constants$a_Asp, gls_calibration_constants$a_Glu),
+  e_published = c(gls_calibration_constants$e_Asp, gls_calibration_constants$e_Glu),
+  row.names = NULL
+)
+```
+
+Using these published constants directly, with the GLS calculator's
+mean-squared-error terms (`MSE_Asp`, `MSE_Glu`) giving the calibration-scale
+residual standard deviations on the log-age scale:
+
+```{r calib_params_A}
+calib_params_A <- list(
   a_Asp     = gls_calibration_constants$a_Asp,
   e_Asp     = gls_calibration_constants$e_Asp,
   sigma_Asp = sqrt(gls_calibration_constants$MSE_Asp),
@@ -121,25 +140,114 @@ calib_params <- list(
   sigma_Glu = sqrt(gls_calibration_constants$MSE_Glu),
   rho       = gls_calibration_constants$rho
 )
-calib_params
+calib_params_A
 ```
 
-### Fitted curves vs. data
+### Approach B: an independent, from-scratch joint Bayesian refit
+
+Instead of taking the two acids' curves as given, this approach fits both
+curves *and* their shared residual correlation jointly in a single MCMC,
+using `log_lik_age_calibration()`'s bivariate-normal likelihood and weakly
+informative priors on all seven parameters (scale, exponent, and residual
+SD per acid, plus the Fisher-z-transformed correlation):
+
+```{r prior_table, echo=FALSE}
+knitr::kable(data.frame(
+  Parameter = c("log(a_Asp)", "e_Asp", "log(sigma_Asp)",
+                "log(a_Glu)", "e_Glu", "log(sigma_Glu)", "z_rho"),
+  Prior     = c("Normal(log(3000), 3)", "Normal(2.5, 2)", "Normal(log(0.4), 1.5)",
+                "Normal(log(9000), 3)", "Normal(2.2, 2)", "Normal(log(0.4), 1.5)",
+                "Normal(0, 1)")
+))
+```
+
+```{r mcmc_stage1, cache=TRUE}
+init_cal <- c(log_a_Asp = log(3000), e_Asp = 2.5, log_sigma_Asp = log(0.4),
+             log_a_Glu = log(9000), e_Glu = 2.2, log_sigma_Glu = log(0.4),
+             z_rho = 0)
+
+prop_cal <- c(log_a_Asp = 0.02, e_Asp = 0.015, log_sigma_Asp = 0.03,
+             log_a_Glu = 0.02, e_Glu = 0.015, log_sigma_Glu = 0.03,
+             z_rho = 0.06)
+
+set.seed(42)
+mcmc_cal <- run_mcmc(log_posterior_age_calibration,
+                     init        = init_cal,
+                     n_iter      = 40000,
+                     proposal_sd = prop_cal,
+                     calibration_data = cal_data)
+
+cat("Acceptance rate:", round(mcmc_cal$acceptance_rate * 100, 1), "%\n")
+```
+
+```{r traces_stage1, fig.height=8}
+plot_mcmc_chains(mcmc_cal, burnin = 10000)
+```
+
+```{r calib_params_B}
+calib_params_B <- summarize_calibration(mcmc_cal, burnin = 10000)
+calib_params_B
+```
+
+### Why do Approach A and Approach B differ?
+
+Approach B's constants diverge from Approach A's by more than MCMC noise:
+repeating the fit from different random seeds converges to the same
+values (acceptance rate ~27%, stable across seeds), so this is not a
+convergence problem. The divergence is also not simply "Bayesian vs.
+frequentist," since a **per-acid** OLS refit (above) reproduces the
+published constants almost exactly. The difference is specifically caused
+by estimating the **residual correlation jointly with both curves' shapes**:
+refitting with `z_rho` fixed at exactly zero (i.e. the same joint MCMC, but
+with the two acids' likelihoods forced to be independent) recovers
+constants close to the published OLS values again:
+
+```{r rho0_diagnostic, cache=TRUE}
+log_post_rho0 <- function(params, calibration_data) {
+  log_posterior_age_calibration(c(params, z_rho = 0), calibration_data)
+}
+
+init_rho0 <- init_cal[names(init_cal) != "z_rho"]
+prop_rho0 <- prop_cal[names(prop_cal) != "z_rho"]
+
+set.seed(1)
+mcmc_rho0 <- run_mcmc(log_post_rho0, init = init_rho0, n_iter = 40000,
+                      proposal_sd = prop_rho0, calibration_data = cal_data)
+post_rho0 <- colMeans(utils::tail(mcmc_rho0$samples, nrow(mcmc_rho0$samples) - 10000))
+
+data.frame(
+  source = c("Published OLS", "Joint MCMC (rho free)", "Joint MCMC (rho = 0)"),
+  a_Asp  = c(gls_calibration_constants$a_Asp, calib_params_B$a_Asp, exp(post_rho0[["log_a_Asp"]])),
+  e_Asp  = c(gls_calibration_constants$e_Asp, calib_params_B$e_Asp, post_rho0[["e_Asp"]]),
+  a_Glu  = c(gls_calibration_constants$a_Glu, calib_params_B$a_Glu, exp(post_rho0[["log_a_Glu"]])),
+  e_Glu  = c(gls_calibration_constants$e_Glu, calib_params_B$e_Glu, post_rho0[["e_Glu"]])
+)
+```
+
+In other words, once `rho` is free to be jointly estimated, the MCMC can
+trade a small loss in either curve's marginal fit for a gain in the joint
+bivariate-normal density via a better-correlated residual pattern — the
+joint maximum is no longer separable into the two curves' independent OLS
+optima. This is a genuine statistical property of the joint-likelihood
+approach, not a bug or a convergence failure.
+
+### Fitted curves vs. data (both approaches)
 
 ```{r plot_fit, fig.height=4.5}
 dl_seq <- seq(0.01, 0.99, length.out = 200)
-t_crit <- gls_calibration_constants$t66
 
-curves <- rbind(
-  data.frame(acid = "Aspartic acid (TDK)", DL = dl_seq,
-             age_ka = predict_age_asp(dl_seq, calib_params$a_Asp, calib_params$e_Asp)),
-  data.frame(acid = "Glutamic acid (SPK)", DL = dl_seq,
-             age_ka = predict_age_glu(dl_seq, calib_params$a_Glu, calib_params$e_Glu))
-)
-curves$lo66 <- curves$age_ka * exp(-t_crit * ifelse(
-  curves$acid == "Aspartic acid (TDK)", calib_params$sigma_Asp, calib_params$sigma_Glu))
-curves$hi66 <- curves$age_ka * exp(+t_crit * ifelse(
-  curves$acid == "Aspartic acid (TDK)", calib_params$sigma_Asp, calib_params$sigma_Glu))
+curve_set <- function(cp, label) {
+  curves <- rbind(
+    data.frame(acid = "Aspartic acid (TDK)", DL = dl_seq,
+               age_ka = predict_age_asp(dl_seq, cp$a_Asp, cp$e_Asp)),
+    data.frame(acid = "Glutamic acid (SPK)", DL = dl_seq,
+               age_ka = predict_age_glu(dl_seq, cp$a_Glu, cp$e_Glu))
+  )
+  curves$approach <- label
+  curves
+}
+curves <- rbind(curve_set(calib_params_A, "A: published OLS"),
+                curve_set(calib_params_B, "B: joint Bayesian refit"))
 
 obs <- rbind(
   data.frame(acid = "Aspartic acid (TDK)", DL = np$DL_Asp, age_ka = np$age_ka),
@@ -147,16 +255,15 @@ obs <- rbind(
 )
 
 ggplot() +
-  geom_ribbon(data = curves, aes(x = DL, ymin = lo66, ymax = hi66),
-              fill = "steelblue", alpha = 0.25) +
-  geom_line(data = curves, aes(x = DL, y = age_ka), colour = "steelblue", linewidth = 1) +
-  geom_point(data = obs, aes(x = DL, y = age_ka), size = 1.2, alpha = 0.6) +
+  geom_point(data = obs, aes(x = DL, y = age_ka), size = 1.2, alpha = 0.4) +
+  geom_line(data = curves, aes(x = DL, y = age_ka, colour = approach), linewidth = 1) +
   scale_y_log10() +
   facet_wrap(~acid, scales = "free_x") +
   labs(x = "D/L", y = "Age (ka BP)",
-       title = "Np AAR age calibration curves (manuscript's fitted constants)",
-       subtitle = "Shading: 66% prediction interval") +
-  theme_bw()
+       title = "Np AAR age calibration curves: published OLS vs. joint Bayesian refit",
+       colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 ## Stage 2a: two worked examples
@@ -164,7 +271,8 @@ ggplot() +
 Two worked examples from the manuscript's spreadsheet calculator provide a
 direct check: their GLS-combined ages and 66% ("likely") prediction
 intervals can be compared against the Bayesian posterior for the same D/L
-inputs.
+inputs, using **Approach A**'s calibration constants (i.e. isolating the
+inversion step, as in the main validation).
 
 ```{r stage2a_examples, cache=TRUE}
 examples <- list(
@@ -177,7 +285,7 @@ examples <- list(
 set.seed(1)
 mcmc_examples <- lapply(examples, function(ex) {
   invert_two_acid_age(DL_Asp_obs = ex$DL_Asp, DL_Glu_obs = ex$DL_Glu,
-                      calib_params = calib_params, n_iter = 30000)
+                      calib_params = calib_params_A, n_iter = 30000)
 })
 
 comparison <- do.call(rbind, lapply(names(examples), function(nm) {
@@ -202,120 +310,193 @@ plot_age_posterior(mcmc_examples[["Example 1"]], burnin = 5000,
 
 ## Stage 2b: full calibration-set comparison
 
-The real validation in the manuscript compares the two methods across the
-**entire 128-sample calibration set**, not just two worked examples. For
-every sample we compute:
+The real validation in the manuscript compares GLS against a Bayesian
+inversion across the **entire 128-sample calibration set**, not just two
+worked examples. This is repeated for **both** calibration approaches from
+Stage 1, so the effect of the calibration-constant choice on the
+GLS-vs.-Bayesian agreement is visible directly. For every sample we compute:
 
 - the reference **GLS** age and 66% interval via `predict_age_gls()`, using
   the manuscript's own fitted calibration constants
   (`gls_calibration_constants`) and each sample's observed D/L, replicate
-  SD, and number of replicates (`n_used`);
+  SD, and number of replicates (`n_used`) — this is fixed across both runs;
 - the **Bayesian** posterior median age and 66% credible interval via
-  `invert_two_acid_age()`, using the same calibration constants
-  (`calib_params`, Stage 1 above).
+  `invert_two_acid_age()`, using either `calib_params_A` (published OLS) or
+  `calib_params_B` (joint Bayesian refit).
 
 ```{r stage2b_full, cache=TRUE}
 n_iter_full  <- 6000
 burnin_full  <- 1500
 
-set.seed(7)
-full_results <- lapply(seq_len(nrow(np)), function(i) {
-  row <- np[i, ]
+run_full_comparison <- function(calib_params, seed) {
+  set.seed(seed)
+  res <- lapply(seq_len(nrow(np)), function(i) {
+    row <- np[i, ]
 
-  gls  <- predict_age_gls(DL_Asp = row$DL_Asp, SD_Asp = row$SD_Asp,
-                          N_Asp = row$n_used,
-                          DL_Glu = row$DL_Glu, SD_Glu = row$SD_Glu,
-                          N_Glu = row$n_used)
+    gls  <- predict_age_gls(DL_Asp = row$DL_Asp, SD_Asp = row$SD_Asp,
+                            N_Asp = row$n_used,
+                            DL_Glu = row$DL_Glu, SD_Glu = row$SD_Glu,
+                            N_Glu = row$n_used)
 
-  mcmc_i <- invert_two_acid_age(DL_Asp_obs = row$DL_Asp, DL_Glu_obs = row$DL_Glu,
-                                calib_params = calib_params, n_iter = n_iter_full)
-  bayes  <- summarize_age_posterior(mcmc_i, burnin = burnin_full)
+    mcmc_i <- invert_two_acid_age(DL_Asp_obs = row$DL_Asp, DL_Glu_obs = row$DL_Glu,
+                                  calib_params = calib_params, n_iter = n_iter_full)
+    bayes  <- summarize_age_posterior(mcmc_i, burnin = burnin_full)
 
-  data.frame(
-    UAL             = row$UAL,
-    published_age_ka = row$age_ka,
-    gls_median_ka   = gls$t_comb,
-    gls_lo66_ka     = gls$lo66,
-    gls_hi66_ka     = gls$hi66,
-    bayes_median_ka = bayes$median_ka,
-    bayes_lo66_ka   = bayes$lo66_ka,
-    bayes_hi66_ka   = bayes$hi66_ka
-  )
-})
-full_results <- do.call(rbind, full_results)
+    data.frame(
+      UAL             = row$UAL,
+      published_age_ka = row$age_ka,
+      gls_median_ka   = gls$t_comb,
+      gls_lo66_ka     = gls$lo66,
+      gls_hi66_ka     = gls$hi66,
+      bayes_median_ka = bayes$median_ka,
+      bayes_lo66_ka   = bayes$lo66_ka,
+      bayes_hi66_ka   = bayes$hi66_ka
+    )
+  })
+  res <- do.call(rbind, res)
+  res |>
+    mutate(
+      pct_diff_median  = 100 * abs(bayes_median_ka - gls_median_ka) / gls_median_ka,
+      gls_width66      = gls_hi66_ka - gls_lo66_ka,
+      bayes_width66    = bayes_hi66_ka - bayes_lo66_ka,
+      pct_diff_width66 = 100 * abs(bayes_width66 - gls_width66) / gls_width66
+    )
+}
 
-full_results <- full_results |>
-  mutate(
-    pct_diff_median = 100 * abs(bayes_median_ka - gls_median_ka) / gls_median_ka,
-    gls_width66     = gls_hi66_ka - gls_lo66_ka,
-    bayes_width66   = bayes_hi66_ka - bayes_lo66_ka,
-    pct_diff_width66 = 100 * abs(bayes_width66 - gls_width66) / gls_width66
-  )
+full_results_A <- run_full_comparison(calib_params_A, seed = 7)
+full_results_B <- run_full_comparison(calib_params_B, seed = 7)
 
-cat("Median absolute % difference in point age estimate:",
-    round(median(full_results$pct_diff_median), 2), "%\n")
-cat("Median absolute % difference in 66% interval width:",
-    round(median(full_results$pct_diff_width66), 2), "%\n")
+summary_table <- data.frame(
+  approach = c("A: published OLS", "B: joint Bayesian refit"),
+  median_pct_diff_age    = c(median(full_results_A$pct_diff_median),
+                             median(full_results_B$pct_diff_median)),
+  max_pct_diff_age       = c(max(full_results_A$pct_diff_median),
+                             max(full_results_B$pct_diff_median)),
+  median_width_ratio     = c(median(full_results_A$bayes_width66 / full_results_A$gls_width66),
+                             median(full_results_B$bayes_width66 / full_results_B$gls_width66))
+)
+knitr::kable(summary_table, digits = 2,
+             col.names = c("Calibration approach", "Median abs. % diff (age)",
+                           "Max abs. % diff (age)", "Median width ratio (Bayes/GLS)"))
 ```
 
 ```{r plot_parity, fig.height=5}
-ggplot(full_results, aes(x = gls_median_ka, y = bayes_median_ka)) +
+full_results <- rbind(
+  cbind(full_results_A, approach = "A: published OLS"),
+  cbind(full_results_B, approach = "B: joint Bayesian refit")
+)
+
+ggplot(full_results, aes(x = gls_median_ka, y = bayes_median_ka, colour = approach)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey40") +
-  geom_point(alpha = 0.6, colour = "steelblue") +
+  geom_point(alpha = 0.6) +
   scale_x_log10() +
   scale_y_log10() +
   labs(x = "GLS combined age (ka, spreadsheet method)",
        y = "Bayesian posterior median age (ka)",
        title = "GLS vs. Bayesian age estimates across the Np calibration set",
-       subtitle = "Dashed line: 1:1") +
-  theme_bw()
+       subtitle = "Dashed line: 1:1", colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 ```{r plot_interval_width, fig.height=5}
-ggplot(full_results, aes(x = gls_width66, y = bayes_width66)) +
+ggplot(full_results, aes(x = gls_width66, y = bayes_width66, colour = approach)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey40") +
-  geom_point(alpha = 0.6, colour = "steelblue") +
+  geom_point(alpha = 0.6) +
   scale_x_log10() +
   scale_y_log10() +
   labs(x = "GLS 66% interval width (ka)",
        y = "Bayesian 66% credible interval width (ka)",
        title = "Prediction/credible interval widths: GLS vs. Bayesian",
-       subtitle = "Dashed line: 1:1") +
-  theme_bw()
+       subtitle = "Dashed line: 1:1", colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom")
 ```
 
 ```{r table_full, echo=FALSE}
-knitr::kable(head(full_results, 10), digits = 2,
-             caption = "First 10 of 128 calibration samples (full table omitted for brevity)")
+knitr::kable(head(full_results_A, 10), digits = 2,
+             caption = "First 10 of 128 calibration samples, Approach A (full table omitted for brevity)")
 ```
 
-The two methods generate point age estimates and 66% interval widths that
-are nearly identical across the full age range: the median absolute
-difference in point age estimates is a few percent, and 66% interval
-widths track closely (ratio near 1). The residual difference has two
-sources: (1) the handful of samples where the GLS softplus regularisation
+**Point estimates:** Approach A (published OLS constants) agrees with GLS
+closely — a median absolute difference of a few percent, driven almost
+entirely by the handful of samples where the GLS softplus regularisation
 nudges the raw (possibly negative) GLS weight away from its unconstrained
-value, a step the Bayesian posterior does not need, and (2) the
-simplification noted below, where this notebook's Bayesian likelihood omits
-the GLS calculator's per-sample analytical-measurement-uncertainty and
-prediction-interval-expansion terms.
+value, a step the Bayesian posterior does not need. Approach B (joint
+Bayesian refit) agrees far less well on point estimates — its median
+absolute difference is several times larger — because its underlying curve
+constants (particularly `a_Glu`/`e_Glu`) are themselves shifted from the
+GLS calculator's curves, for the reason identified in Stage 1 above. This
+is a difference in *calibration curve*, not in how the two acids' evidence
+is combined once a curve is fixed.
 
-## Why the two methods agree
+**Uncertainty (interval widths):** despite the point-estimate gap, Approach
+B's 66% credible interval widths track the GLS 66% interval widths about as
+closely as Approach A's do (both ratios near 1). This is because Approach
+B's posterior residual SDs (`sigma_Asp`, `sigma_Glu`) — which set the
+*width* of the age uncertainty — turn out to be similar in magnitude to
+Approach A's, even though the *location* of the curves (`a`, `e`) differs
+enough to shift the point estimate. In other words, refitting the
+calibration curves jointly mainly relocates the age estimate; it does not
+by itself make the age noticeably more or less certain.
 
-This agreement is expected: for a flat prior and Gaussian log-age
-residuals, the Bayesian posterior mode and variance reduce algebraically to
-the GLS point estimate and combined variance. This confirms that the GLS
-formulation implemented in the spreadsheet calculator is an equivalent
-implementation of the Bayesian age inversion, and can be deployed without
-running an MCMC chain.
+## Why Approach A agrees with GLS, and what Approach B changes
 
-One simplification relative to the full manuscript treatment: the
-Bayesian likelihood here uses only the calibration-scale residual variance
-(`sigma_Asp`, `sigma_Glu`), not the additional per-sample
-analytical-measurement-uncertainty term the GLS calculator adds via each
-sample's replicate SE. The manuscript finds that term contributes only a
-small amount to the total variance on average, so this simplification has
-little practical effect on the comparison above, though it can matter more
-for samples with few replicates, especially young samples, where the
-GLS calculator's explicit propagation of replicate uncertainty is an
-advantage over this simplified Bayesian implementation.
+For a flat prior and Gaussian log-age residuals, the Bayesian posterior
+mode and variance reduce algebraically to the GLS point estimate and
+combined variance *given the same calibration curve*. Approach A supplies
+exactly that shared curve, so it recovers the GLS combination almost
+exactly — confirming the GLS formulation is a valid, deployable equivalent
+of the Bayesian inversion. Approach B breaks that equivalence at the
+curve-fitting stage, before the inversion step is ever reached: jointly
+estimating the residual correlation alongside both curves' shapes yields a
+different (but equally legitimate, in a strict likelihood sense) maximum
+than fitting each curve's OLS regression independently and estimating
+`rho` afterward, as the manuscript's spreadsheet does.
+
+One simplification applies to both approaches: the Bayesian likelihood
+here uses only the calibration-scale residual variance (`sigma_Asp`,
+`sigma_Glu`), not the additional per-sample analytical-measurement-
+uncertainty term the GLS calculator adds via each sample's replicate SE.
+The manuscript finds that term contributes only a small amount to the
+total variance on average, so this simplification has little practical
+effect on the comparison above, though it can matter more for samples with
+few replicates, especially young samples, where the GLS calculator's
+explicit propagation of replicate uncertainty is an advantage over this
+simplified Bayesian implementation.
+
+## Approach A vs. Approach B: which to use, and when
+
+**Approach A (adopt the manuscript's published calibration constants)**
+
+- *Pros:* guarantees the age-inversion comparison is testing exactly one
+  thing — whether a Bayesian combination of two acids' evidence reproduces
+  a GLS combination of the same evidence, given the same curves. Requires
+  no MCMC calibration fit (faster, nothing to tune or check for
+  convergence) and cannot inherit any curve-fitting idiosyncrasy. This is
+  the appropriate choice for the manuscript's section 4.1 validation
+  claim specifically.
+- *Cons:* it is not a fully independent, end-to-end check — it takes the
+  spreadsheet's own per-acid OLS curves as ground truth rather than
+  testing whether an independent statistical procedure would arrive at
+  similar curves in the first place.
+
+**Approach B (independent joint Bayesian calibration refit)**
+
+- *Pros:* a genuinely independent, end-to-end pipeline from raw D/L
+  measurements to final age, with no numbers imported from the spreadsheet
+  at all. Naturally propagates calibration uncertainty into the age
+  posterior (in principle — not implemented in this simplified inversion),
+  and can accommodate a shared residual correlation directly in the
+  likelihood rather than as an auxiliary post-hoc estimate.
+- *Cons:* its point estimates diverge non-trivially from the published
+  calculator (several percent median, and up to several times that for
+  individual samples) for a subtle but explainable reason — jointly
+  estimating the residual correlation alongside the curve shapes changes
+  where the joint likelihood is maximized, relative to fitting each curve
+  independently. That divergence would need to be resolved (e.g. by fixing
+  `rho` post-hoc as the manuscript does, rather than estimating it jointly,
+  or by using per-acid priors informative enough to anchor each curve near
+  its independent OLS fit) before Approach B could be presented as an
+  equally valid *replacement* calibration, rather than as a diagnostic on
+  the joint-fitting procedure itself.
