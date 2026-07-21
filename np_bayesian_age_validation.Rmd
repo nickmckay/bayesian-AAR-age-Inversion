@@ -512,11 +512,16 @@ fully independent, end-to-end Bayesian pipeline, from raw D/L
 measurements to final age, arrives at somewhat different calibration
 curves than the manuscript's per-acid OLS fit, and consequently at
 somewhat different point-age estimates (median several percent, up to
-several times that for old individual samples). This divergence is a
-genuine statistical property of jointly estimating a shared residual
-correlation alongside two curves' shapes, not a bug or a convergence
-failure, and it does not materially change the width of the age
-uncertainty.
+several times that for the most sensitive individual samples, an effect
+concentrated among the youngest, lowest-absolute-age samples where a
+small offset becomes a large percentage). The systematic trend, however,
+runs the other way with age: the refit predicts older ages at the young
+end and younger ages at the old end of the calibration range, consistent
+with the old-end younging bias already identified in the LOOCV analysis.
+This divergence is a genuine statistical property of jointly estimating a
+shared residual correlation alongside two curves' shapes, not a bug or a
+convergence failure, and it does not materially change the width of the
+age uncertainty.
 
 In summary, the GLS formulation provides a nearly equivalent or better
 alternative to the Bayesian age inversion. The former can be implemented
