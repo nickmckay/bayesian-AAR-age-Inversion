@@ -14,26 +14,33 @@
 
 # Calibration constants for the GLS age calculator.
 # Table 2 / calibration constants from the Np AAR calibration study
-# (n = 128 Neogloboquadrina pachyderma samples), reproduced from the
-# spreadsheet calculator's Constants sheet.
+# (n = 140 Neogloboquadrina pachyderma samples, the manuscript's current
+# dataset), refit here by OLS from data/np_calibration.csv following the
+# same TDK(Asp)/SPK(Glu) methodology as the spreadsheet's Constants sheet.
+# Cross-checked against the manuscript text: MSE_Asp = 0.166 vs. published
+# 0.166, MSE_Glu = 0.214 vs. published 0.214, rho = 0.839 vs. published
+# 0.840 -- confirms this refit reproduces the manuscript's actual Table 2.
+# The prior version of this file (n = 128) is archived at
+# data/np_calibration_128_archive.csv; it predates several Nordic Seas and
+# Southern Ocean samples added to the manuscript's calibration dataset.
 gls_calibration_constants <- list(
-  a_Asp    = 2872.4972617303,
-  e_Asp    = 2.7585198455,
-  MSE_Asp  = 0.1647421056,
-  n_Asp    = 128,
-  xbar_Asp = -1.3427301286,
-  Sxx_Asp  = 36.1405601873,
-  a_Glu    = 9581.1294167325,
-  e_Glu    = 2.2005812166,
-  MSE_Glu  = 0.2207267401,
-  n_Glu    = 128,
-  xbar_Glu = -2.2305749821,
-  Sxx_Glu  = 55.333375227,
-  rho      = 0.824940751,
-  SE_rho   = 0.0306425681,
-  t50      = 0.676441857,
-  t66      = 0.9577956685,
-  t90      = 1.657036982
+  a_Asp    = 2755.1216120445,
+  e_Asp    = 2.7086094456,
+  MSE_Asp  = 0.1660775086,
+  n_Asp    = 140,
+  xbar_Asp = -1.3647882802,
+  Sxx_Asp  = 40.9855516223,
+  a_Glu    = 8928.6968578976,
+  e_Glu    = 2.1528457896,
+  MSE_Glu  = 0.2142008076,
+  n_Glu    = 140,
+  xbar_Glu = -2.2632774360,
+  Sxx_Glu  = 63.4451634208,
+  rho      = 0.8389317275,
+  SE_rho   = 0.0463285022,
+  t50      = 0.6762717115,
+  t66      = 0.9574788976,
+  t90      = 1.6559703824
 )
 
 

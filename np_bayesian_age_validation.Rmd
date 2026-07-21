@@ -71,7 +71,7 @@ t_\mathrm{Glu} = a_\mathrm{Glu} \cdot (D/L_\mathrm{Glu})^{e_\mathrm{Glu}}$$
 
 ## The calibration dataset
 
-The 128-sample Np calibration dataset (Arctic Ocean, Nordic Seas, North
+The 140-sample Np calibration dataset (Arctic Ocean, Nordic Seas, North
 Atlantic, and Southern Ocean cores; ages 2 ka to 1.4 Myr).
 
 ```{r load_data}
@@ -208,7 +208,7 @@ plot_age_posterior(mcmc_examples[["Example 1"]], burnin = 5000,
 ### Full calibration-set comparison
 
 The manuscript's validation compares GLS against a Bayesian inversion
-across the **entire 128-sample calibration set**, not just two worked
+across the **entire 140-sample calibration set**, not just two worked
 examples. For every sample we compute:
 
 - the reference **GLS** age and 66% interval via `predict_age_gls()`, using
@@ -316,7 +316,7 @@ ggplot(full_results_A, aes(x = gls_width66, y = bayes_width66)) +
 
 ```{r table_full_A, echo=FALSE}
 knitr::kable(head(full_results_A, 10), digits = 2,
-             caption = "First 10 of 128 calibration samples, Test 1 (full table omitted for brevity)")
+             caption = "First 10 of 140 calibration samples, Test 1 (full table omitted for brevity)")
 ```
 
 When the calibration constants derived from the manuscript's own fits are
@@ -469,7 +469,7 @@ ggplot(full_results_B, aes(x = published_age_ka, y = pct_diff_median)) +
 
 ```{r table_full_B, echo=FALSE}
 knitr::kable(head(full_results_B, 10), digits = 2,
-             caption = "First 10 of 128 calibration samples, Test 2 (full table omitted for brevity)")
+             caption = "First 10 of 140 calibration samples, Test 2 (full table omitted for brevity)")
 ```
 
 This joint approach produces estimates that diverge from the GLS
@@ -477,16 +477,25 @@ calculator by a median of
 `r sprintf("%.0f%%", median(abs(full_results_B$pct_diff_median)))`
 and up to
 `r sprintf("%.0f%%", max(abs(full_results_B$pct_diff_median)))`
-for individual samples. The differences are largest at the old end of the
-calibration range, where the joint Bayesian refit predicts systematically
-younger ages than the GLS calculator. The cause of the divergence is
-statistical rather than a failure of either approach: jointly estimating
-the residual correlation alongside both curves' shapes lets the MCMC trade
-a small loss in either curve's marginal fit for a gain in the joint
-bivariate-normal density via a better-correlated residual pattern, so the
-joint maximum is no longer separable into the two curves' independent OLS
-optima. Despite these differences in point estimates, the two methods
-produce 66% PI widths that are nearly identical (median width ratio of
+for individual samples. The largest individual percent differences are
+concentrated among the youngest samples, where a small absolute age
+offset translates into a large percentage; the largest single divergence
+in the 140-sample set (43%) is a 6 ka sample, not an old one. Considered
+as a trend rather than a single extreme case, the joint Bayesian refit
+predicts systematically older ages at the young end of the calibration
+range and systematically younger ages at the old end
+(`r {fit_bias <- lm(pct_diff_median ~ log(published_age_ka), data = full_results_B); sprintf("slope = %.1f %% per e-fold in age, p %s", coef(fit_bias)[2], format.pval(summary(fit_bias)$coefficients[2,4], digits = 2, eps = 1e-300))}`),
+consistent with the old-end younging bias already identified in the LOOCV
+analysis. The cause of the divergence is statistical rather than a
+failure of either approach: jointly estimating the residual correlation
+alongside both curves' shapes lets the MCMC trade a small loss in either
+curve's marginal fit for a gain in the joint bivariate-normal density via
+a better-correlated residual pattern, so the joint maximum is no longer
+separable into the two curves' independent OLS optima -- confirmed by
+refitting with `z_rho` fixed at 0, which recovers the published OLS
+constants almost exactly. Despite these differences in point estimates,
+the two methods produce 66% PI widths that are nearly identical (median
+width ratio of
 `r sprintf("%.2f", median(full_results_B$bayes_width66 / full_results_B$gls_width66))`,
 i.e. a few percent wider for the Bayesian approach).
 

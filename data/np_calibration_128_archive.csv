@@ -1,0 +1,129 @@
+UAL,study,region,core,depth_mbsf,temp_C,temp_cat,taxon,n_used,n_rejected,age_ka,DL_Asp,SD_Asp,DL_Glu,SD_Glu
+23165,Hunt 2023,Southern,PC493,0.555,0.5,Very cold,Neogloboquadrina,9,1,7,0.148,0.015,0.063,0.007
+"23044, 23140",Hunt 2023,Southern,PC493,0.555,0.5,Very cold,Neogloboquadrina,12,7,115,0.242,0.008,0.093,0.009
+"23045, 23156, 23590",Hunt 2023,Southern,PC493,1.615,0.5,Very cold,Neogloboquadrina,24,6,401,0.404,0.03,0.203,0.029
+"23046, 23157",Hunt 2023,Southern,PC493,2.045,0.5,Very cold,Neogloboquadrina,17,3,602,0.442,0.021,0.241,0.023
+23158,Hunt 2023,Southern,PC493,2.805,0.5,Very cold,Neogloboquadrina,9,1,785,0.478,0.036,0.267,0.039
+"23166, 23167",Hunt 2023,Southern,PC493,3.255,0.5,Very cold,Neogloboquadrina,29,14,1020,0.51,0.05,0.322,0.053
+"23233, 23491",Hunt 2023,Southern,PC723,5.48,0.1,Very cold,Neogloboquadrina,14,6,113,0.269,0.011,0.103,0.006
+"23232, 23492",Hunt 2023,Southern,PC723,8.9,0.1,Very cold,Neogloboquadrina,13,7,235,0.346,0.04,0.155,0.037
+23234,Hunt 2023,Southern,PC734,11.19,0.1,Very cold,Neogloboquadrina,7,3,101,0.296,0.02,0.119,0.019
+23591,Hunt 2023,Southern,PS1506-1,1.43,-0.7,Very cold,Neogloboquadrina,6,4,93,0.219,0.005,0.082,0.005
+"23562, 23593",Hunt 2023,Southern,PS1506-1,1.51,-0.7,Very cold,Neogloboquadrina,11,8,98,0.224,0.009,0.084,0.009
+23566,Hunt 2023,Southern,PS1506-1,1.59,-0.7,Very cold,Neogloboquadrina,6,4,102,0.24,0.013,0.091,0.014
+23500,Hunt 2023,Southern,PS1506-1,1.65,-0.7,Very cold,Neogloboquadrina,5,5,105,0.249,0.007,0.101,0.005
+23563,Hunt 2023,Southern,PS1506-1,1.74,-0.7,Very cold,Neogloboquadrina,9,1,110,0.269,0.012,0.108,0.009
+23481,Hunt 2023,Southern,PS1506-1,3.49,-0.7,Very cold,Neogloboquadrina,8,2,237,0.358,0.027,0.167,0.02
+23501,Hunt 2023,Southern,PS1506-1,3.8,-0.7,Very cold,Neogloboquadrina,7,3,298,0.38,0.037,0.184,0.035
+23484,Hunt 2023,Southern,PS1506-1,5.1,-0.7,Very cold,Neogloboquadrina,8,2,489,0.48,0.011,0.283,0.015
+23483,Hunt 2023,Southern,PS1506-1,5.25,-0.7,Very cold,Neogloboquadrina,9,1,521,0.473,0.035,0.266,0.05
+23502,Hunt 2023,Southern,PS1506-1,5.4,-0.7,Very cold,Neogloboquadrina,7,3,558,0.474,0.018,0.269,0.023
+23564,Hunt 2023,Southern,PS1506-1,5.51,-0.7,Very cold,Neogloboquadrina,7,2,585,0.438,0.043,0.255,0.035
+23485,Hunt 2023,Southern,PS1506-1,6.33,-0.7,Very cold,Neogloboquadrina,10,0,679,0.517,0.018,0.318,0.02
+23504,Hunt 2023,Southern,PS2551-1,3.7,0.1,Very cold,Neogloboquadrina,7,3,102,0.235,0.015,0.088,0.012
+23503,Hunt 2023,Southern,PS2551-1,7.68,0.1,Very cold,Neogloboquadrina,7,3,304,0.428,0.006,0.224,0.011
+23499,Hunt 2023,Southern,PS2551-1  ,10.55,0.1,Very cold,Neogloboquadrina,5,4,681,0.508,0.007,0.296,0.009
+5921,"Kaufman et al., 2013",Arctic,88AR-P5  ,1,,Very cold,Neogloboquadrina,5,0,5.526,0.0982,0.010281050529979827,0.0498,0.011819475453673924
+6510,"Kaufman et al., 2013",Arctic,HLY0503-11MC-2,5.5,-0.7,Very cold,Neogloboquadrina,5,0,30.949,0.225,0.03916631205513237,0.10640000000000001,0.02538306522073323
+7307,"Kaufman et al., 2013",Arctic,HLY0503-18TC,0.9,-0.7,Very cold,Neogloboquadrina,4,0,2,0.06,0.002,0.018,0.001
+7308,"Kaufman et al., 2013",Arctic,HLY0503-18TC,7.7,-0.7,Very cold,Neogloboquadrina,5,0,7.4,0.1,0.008,0.031,0.003
+7441,"Kaufman et al., 2013",Arctic,HLY0503-18TC,11.2,-0.7,Very cold,Neogloboquadrina,5,1,9.1,0.122,0.005,0.035,0.002
+7309,"Kaufman et al., 2013",Arctic,HLY0503-18TC,15.7,-0.7,Very cold,Neogloboquadrina,5,1,10.9,0.111,0.005,0.031,0.002
+7440,"Kaufman et al., 2013",Arctic,HLY0503-18TC,17.7,-0.7,Very cold,Neogloboquadrina,4,1,11.6,0.133,0.007,0.038,0.003
+7310,"Kaufman et al., 2013",Arctic,HLY0503-18TC,21.7,-0.7,Very cold,Neogloboquadrina,4,1,12.4,0.122,0.006,0.037,0.002
+7311,"Kaufman et al., 2013",Arctic,HLY0503-18TC,25.7,-0.7,Very cold,Neogloboquadrina,5,0,12.9,0.122,0.002,0.036,0.002
+7312,"Kaufman et al., 2013",Arctic,HLY0503-18TC,27.7,-0.7,Very cold,Neogloboquadrina,5,0,13,0.115,0.015,0.035,0.005
+7313,"Kaufman et al., 2013",Arctic,HLY0503-18TC,29.7,-0.7,Very cold,Neogloboquadrina,4,1,27.4,0.168275,0.018524825685189632,0.05175,0.009844626283748258
+7314,"Kaufman et al., 2013",Arctic,HLY0503-18TC,31.7,-0.7,Very cold,Neogloboquadrina,3,1,30.9,0.185,0.011532562594670807,0.06033333333333333,0.0020816659994661304
+6134,"Kaufman et al., 2013",Arctic,HLY0503-8JPC,0.5,,Very cold,Neogloboquadrina,4,1,3.98,0.08025,0.005123475382979765,0.035250000000000004,0.0009574271077562129
+6141,"Kaufman et al., 2013",Arctic,HLY0503-8JPC,7.5,,Very cold,Neogloboquadrina,4,0,10.15,0.096,0.008082903768654797,0.03425,0.0053774219349672
+6140,"Kaufman et al., 2013",Arctic,HLY0503-8JPC,14.5,,Very cold,Neogloboquadrina,2,1,9.61,0.1075,0.0021213203435598857,0.0455,0.004949747468305854
+6135,"Kaufman et al., 2013",Arctic,HLY0503-8JPC,24.5,,Very cold,Neogloboquadrina,3,1,10.86,0.10966666666666668,0.0032145502536644866,0.039,0.0010000000000000664
+7468,"Kaufman et al., 2013",Arctic,LORMROG07-08PC,0.25,,Very cold,Neogloboquadrina,5,0,6.9,0.08539999999999999,0.010714476188783259,0.034,0.004358898943540674
+7469,"Kaufman et al., 2013",Arctic,LORMROG07-08PC,2.5,,Very cold,Neogloboquadrina,4,2,12,0.123,0.0064807406984078615,0.045250000000000005,0.006396613687465162
+7470,"Kaufman et al., 2013",Arctic,LORMROG07-08PC,4.5,,Very cold,Neogloboquadrina,6,0,17.4,0.16866666666666666,0.012754084313139328,0.06333333333333334,0.007174027227901124
+7471,"Kaufman et al., 2013",Arctic,LORMROG07-08PC,7.5,,Very cold,Neogloboquadrina,6,0,36.8,0.18766666666666665,0.005240865068542284,0.07333333333333333,0.003829708431025353
+8187,"Kaufman et al., 2013",North Atlantic,U1308A,35.22,2.5,Cold,Neogloboquadrina,12,12,539.2,0.479,0.061,0.236,0.042
+"8198, 8730","Kaufman et al., 2013",North Atlantic,U1308A,46.68,2.5,Cold,Neogloboquadrina,3,53,720.3,0.548,0.034,0.3,0.059
+8199,"Kaufman et al., 2013",North Atlantic,U1308A,48.82,2.5,Cold,Neogloboquadrina,21,8,747.7,0.631,0.039,0.387,0.043
+"8167, 8697","Kaufman et al., 2013",North Atlantic,U1308A,79.67,2.5,Cold,Neogloboquadrina,14,27,1122.7,0.597,0.045,0.348,0.053
+8189,"Kaufman et al., 2013",North Atlantic,U1308B,86.15,2.5,Cold,Neogloboquadrina,14,9,1200.9,0.547,0.054,0.27,0.048
+8168,"Kaufman et al., 2013",North Atlantic,U1308B,103.77,2.5,Cold,Neogloboquadrina,12,19,1415.7,0.568,0.077,0.317,0.07
+8191,"Kaufman et al., 2013",North Atlantic,U1308C,1.24,2.5,Cold,Neogloboquadrina,9,2,18.9,0.222,0.005,0.078,0.004
+8169,"Kaufman et al., 2013",North Atlantic,U1308C,22.29,2.5,Cold,Neogloboquadrina,13,5,348.8,0.518,0.03,0.281,0.033
+8194,"Kaufman et al., 2013",North Atlantic,U1308C,40.42,2.5,Cold,Neogloboquadrina,11,1,631.6,0.571,0.058,0.324,0.065
+8195,"Kaufman et al., 2013",North Atlantic,U1308C,51.76,2.5,Cold,Neogloboquadrina,9,1,799.2,0.581,0.027,0.351,0.037
+8190,"Kaufman et al., 2013",North Atlantic,U1308C,56.85,2.5,Cold,Neogloboquadrina,14,5,873.5,0.509,0.035,0.257,0.042
+8193,"Kaufman et al., 2013",North Atlantic,U1308E,3.18,2.5,Cold,Neogloboquadrina,8,4,44.4,0.265,0.008,0.096,0.008
+8188,"Kaufman et al., 2013",North Atlantic,U1308E,6.04,2.5,Cold,Neogloboquadrina,9,1,88.8,0.306,0.031,0.115,0.018
+8192,"Kaufman et al., 2013",North Atlantic,U1308E,7.34,2.5,Cold,Neogloboquadrina,9,2,107.5,0.303,0.03,0.107,0.02
+8196,"Kaufman et al., 2013",North Atlantic,U1308E,9.34,2.5,Cold,Neogloboquadrina,10,0,140,0.391,0.022,0.171,0.018
+8166,"Kaufman et al., 2013",North Atlantic,U1308E,15.82,2.5,Cold,Neogloboquadrina,10,7,249.9,0.443,0.052,0.216,0.04
+8186,"Kaufman et al., 2013",North Atlantic,U1308E,27.4,2.5,Cold,Neogloboquadrina,15,11,431,0.417,0.022,0.203,0.02
+8197,"Kaufman et al., 2013",North Atlantic,U1308F,71.33,2.5,Cold,Neogloboquadrina,8,3,1046.4,0.537,0.068,0.316,0.072
+22745,West et al. 2023,Nordic Seas,ODP 151/ 907A,1.05,-0.8,Very cold,Neogloboquadrina,15,2,42,0.2,0.008,0.082,0.007
+22746,West et al. 2023,Nordic Seas,ODP 151/ 907A,1.87,-0.8,Very cold,Neogloboquadrina,13,2,107,0.281,0.005,0.114,0.003
+22747,West et al. 2023,Nordic Seas,ODP 151/ 907A,2.35,-0.8,Very cold,Neogloboquadrina,18,2,131,0.323,0.012,0.145,0.009
+22748,West et al. 2023,Nordic Seas,ODP 151/ 907A,3.06,-0.8,Very cold,Neogloboquadrina,15,0,168,0.355,0.011,0.171,0.009
+22749,West et al. 2023,Nordic Seas,ODP 151/ 907A,5.06,-0.8,Very cold,Neogloboquadrina,17,2,309,0.395,0.016,0.192,0.014
+22750,West et al. 2023,Nordic Seas,ODP 151/ 907A,6.81,-0.8,Very cold,Neogloboquadrina,12,1,398,0.388,0.013,0.183,0.016
+22751,West et al. 2023,Nordic Seas,ODP 151/ 907A,15.21,-0.8,Very cold,Neogloboquadrina,10,3,781,0.482,0.036,0.25,0.046
+22732,West et al. 2023,Nordic Seas,PS17 / 1906-2,0.15,-1,Very cold,Neogloboquadrina,12,3,10,0.13,0.005,0.065,0.002
+22733,West et al. 2023,Nordic Seas,PS17 / 1906-2,1.81,-1,Very cold,Neogloboquadrina,17,0,85,0.263,0.008,0.111,0.008
+22734,West et al. 2023,Nordic Seas,PS17 / 1906-2,2.01,-1,Very cold,Neogloboquadrina,12,0,111,0.306,0.006,0.138,0.005
+22735,West et al. 2023,Nordic Seas,PS17 / 1906-2,2.11,-1,Very cold,Neogloboquadrina,12,4,117,0.312,0.01,0.141,0.009
+22736,West et al. 2023,Nordic Seas,PS17 / 1906-2,2.21,-1,Very cold,Neogloboquadrina,12,3,122,0.331,0.032,0.156,0.028
+22737,West et al. 2023,Nordic Seas,PS17 / 1906-2,3.29,-1,Very cold,Neogloboquadrina,8,1,207,0.338,0.017,0.168,0.011
+22738,West et al. 2023,Nordic Seas,PS17 / 1906-2,3.61,-1,Very cold,Neogloboquadrina,12,2,225,0.355,0.01,0.178,0.01
+22739,West et al. 2023,Nordic Seas,PS17 / 1906-2,5.51,-1,Very cold,Neogloboquadrina,5,1,398,0.439,0.03,0.227,0.036
+15544,"West et al., 2019",Arctic,PS92/39-2,0.2,-0.76,Very cold,Neogloboquadrina,1,6,6.7,0.121,-,0.056,-
+15546,"West et al., 2019",Arctic,PS92/39-2,1.5,-0.76,Very cold,Neogloboquadrina,4,3,30.8,0.234,0.018,0.082,0.01
+15547,"West et al., 2019",Arctic,PS92/39-2,3,-0.76,Very cold,Neogloboquadrina,8,0,64.2,0.258,0.025,0.103,0.021
+15548,"West et al., 2019",Arctic,PS92/39-2,3.8,-0.76,Very cold,Neogloboquadrina,8,2,80.4,0.233,0.016,0.095,0.015
+15549,"West et al., 2019",Arctic,PS92/39-2,5.81,-0.76,Very cold,Neogloboquadrina,4,5,126.3,0.272,0.063,0.11,0.035
+15550,"West et al., 2019",Arctic,PS92/39-2,6.51,-0.76,Very cold,Neogloboquadrina,8,1,139.2,0.313,0.014,0.153,0.015
+15551,"West et al., 2019",Arctic,PS92/39-2,7.21,-0.76,Very cold,Neogloboquadrina,4,6,150.8,0.298,0.016,0.118,0.016
+15552,"West et al., 2019",Arctic,PS92/39-2,8.31,-0.76,Very cold,Neogloboquadrina,5,5,168.5,0.283,0.021,0.111,0.015
+15553,"West et al., 2019",Arctic,PS92/39-2,8.41,-0.76,Very cold,Neogloboquadrina,6,4,170.1,0.329,0.017,0.169,0.013
+16814,"West et al., 2019",Arctic,PS92/45-2,1.2,-0.25,Very cold,Neogloboquadrina,6,3,29.8,0.19,0.012,0.085,0.009
+16815,"West et al., 2019",Arctic,PS92/45-2,1.59,-0.25,Very cold,Neogloboquadrina,11,0,39.5,0.195,0.008,0.084,0.007
+16817,"West et al., 2019",Arctic,PS92/45-2,3.12,-0.25,Very cold,Neogloboquadrina,4,4,90.1,0.269,0.019,0.124,0.027
+16818,"West et al., 2019",Arctic,PS92/45-2,4.13,-0.25,Very cold,Neogloboquadrina,4,3,147.8,0.345,0.014,0.176,0.017
+17531,"West et al., 2019",Arctic,PS92/45-2,4.45,-0.25,Very cold,Neogloboquadrina,11,0,171.8,0.351,0.027,0.186,0.029
+16819,"West et al., 2019",Arctic,PS92/45-2,4.73,-0.25,Very cold,Neogloboquadrina,4,2,194.9,0.362,0.023,0.189,0.016
+16822,"West et al., 2019",Arctic,PS92/54-1,1.79,-0.43,Very cold,Neogloboquadrina,6,1,40.1,0.166,0.011,0.07,0.009
+16826,"West et al., 2019",Arctic,PS92/54-1,4.66,-0.43,Very cold,Neogloboquadrina,8,7,132.3,0.395,0.01,0.224,0.01
+16827,"West et al., 2019",Arctic,PS92/54-1,4.94,-0.43,Very cold,Neogloboquadrina,5,1,135.8,0.358,0.035,0.175,0.04
+16828,"West et al., 2019",Arctic,PS92/54-1,5.1,-0.43,Very cold,Neogloboquadrina,3,1,137.8,0.345,0.018,0.186,0.02
+0627uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.1,-0.75,Very cold,Neogloboquadrina,2,0,13.1982477563496,0.17790744576113884,0.0074127944048769144,0.07766847978283853,0.002839906720488349
+0585uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.2,-0.75,Very cold,Neogloboquadrina,2,0,13.48325026895,0.16252795164162523,0.0038135508169400813,0.0633263498699319,0.002600801073722899
+0984uH*,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.31,-0.75,Very cold,Neogloboquadrina,1,0,13.7682527815503,0.1853272950138528,,0.06903044801051186,
+0629uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.4,-0.75,Very cold,Neogloboquadrina,2,0,14.2493929723399,0.1748986692575018,0.0012567517636096687,0.07537540745947974,0.00115348184225128
+0586uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.7,-0.75,Very cold,Neogloboquadrina,2,0,16.1622212752791,0.17406201672376304,0.0020091313596595876,0.06508017142652031,7.88997758558916e-06
+0630uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.8,-0.75,Very cold,Neogloboquadrina,2,0,16.7204938402608,0.1749740700027781,0.0025137579409289152,0.07695243583628103,0.0010910890633780326
+0631uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,1.9,-0.75,Very cold,Neogloboquadrina,2,0,17.08321049051,0.1722386513483431,0.0026943299818447475,0.07095913342244847,0.00020380149105463197
+0587uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2,-0.75,Very cold,Neogloboquadrina,2,0,17.2503712260269,0.18419019753792853,0.0003574298440385142,0.06307494935022101,0.0014706485121183976
+0632uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.1,-0.75,Very cold,Neogloboquadrina,2,0,17.4175319615437,0.1749990715665817,0.0005359547321932859,0.07969218664047062,0.0016835371784727695
+0633uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.2,-0.75,Very cold,Neogloboquadrina,2,0,17.5755055504584,0.1898328094921939,0.004700411802493032,0.07180867834494378,0.0006843666355090892
+0588uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.3,-0.75,Very cold,Neogloboquadrina,2,0,17.7334791393731,0.18622307256627574,0.0008270983266710667,0.06948203018868868,0.0017309355807108506
+0634uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.4,-0.75,Very cold,Neogloboquadrina,2,0,17.8807421774256,0.17697809684186577,0.0008213603268745432,0.07247138765283402,4.97771909413869e-05
+0562uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.6,-0.75,Very cold,Neogloboquadrina,3,0,18.1538471518064,0.17974064108532062,0.005381832458399099,0.06285379151855669,0.009214624648221668
+0635uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.71,-0.75,Very cold,Neogloboquadrina,2,0,18.2525457266614,0.19052335780911953,8.907569725537571e-05,0.06931718417804245,0.00012278869909610517
+0589uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.8,-0.75,Very cold,Neogloboquadrina,3,0,18.3332991060883,0.20049779702784762,0.0004325465395727953,0.07425228446101677,0.0023655947260212058
+0636uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,2.9,-0.75,Very cold,Neogloboquadrina,2,0,18.4092025637323,0.17053651486147886,0.004328635819970644,0.05606506780747278,0.0003079930219977246
+0590uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,3,-0.75,Very cold,Neogloboquadrina,2,0,18.4712835018794,0.18227752325452978,0.0031039971173145837,0.064179175520557,0.00017882021680815094
+0578uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,5.5,-0.75,Very cold,Neogloboquadrina,2,0,19.9984026080372,0.19367775935082615,0.0007125633743776963,0.07464220997234924,0.000927814010799123
+0637uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,7.5,-0.75,Very cold,Neogloboquadrina,2,0,21.5058087861033,0.21578055248456962,0.006639965516271606,0.08072345005905748,0.0015777167856155278
+0576uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,8,-0.75,Very cold,Neogloboquadrina,2,0,21.9966480089499,0.21425729910035618,0.004266085054838877,0.06636073786100755,0.00019219800330072946
+0638uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,9,-0.75,Very cold,Neogloboquadrina,2,0,23.7068507643143,0.1934667034050618,0.004319999106039387,0.06934904847077734,0.00047819657938531204
+0639uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,9.5,-0.75,Very cold,Neogloboquadrina,2,0,24.5445995786602,0.19960528273648107,0.005241689252672871,0.0727368840634796,0.001928494336651839
+0640uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,10.5,-0.75,Very cold,Neogloboquadrina,2,1,27.00587495107,0.2236724580355388,0.013227897705557115,0.09379396269533075,0.00027706920246505455
+0641uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,11,-0.75,Very cold,Neogloboquadrina,2,0,27.6672184941955,0.20859477153534925,0.004079967857153871,0.08068759366181597,0.00028313359740037936
+0642uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,12,-0.75,Very cold,Neogloboquadrina,2,0,28.6706113124253,0.19401067309498166,0.0012391934895479822,0.07236440096152713,0.0022329551623741384
+0643uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,12.5,-0.75,Very cold,Neogloboquadrina,2,0,31.9802989291597,0.2262040201223072,0.0012789951337700562,0.0869976532690985,0.004196921500826015
+0577uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,13,-0.75,Very cold,Neogloboquadrina,2,0,37.616665630879,0.22314017005425285,0.0017676525087175477,0.07973148137411182,0.0010985883721266628
+1076uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,13.5,-0.75,Very cold,Neogloboquadrina,2,0,43.8467588898009,0.22972515598768323,0.0022518889470662536,0.0894669829853405,0.0016417109089043116
+0902uH*,Wheeler et al. 2021,Nordic Seas,MD99-2289,14,-0.75,Very cold,Neogloboquadrina,1,0,50.1984464082558,0.27335571643531853,,0.10714124244340176,
+0563uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,15,-0.75,Very cold,Neogloboquadrina,3,0,59.2691219816589,0.2375669253859991,0.006338338946034259,0.08798754164391642,0.005061149264146145
+0912uH*,Wheeler et al. 2021,Nordic Seas,MD99-2289,17.5,-0.75,Very cold,Neogloboquadrina,1,0,100.45585097726,0.3171364522206367,,0.13628676117796562,
+0561uH,Wheeler et al. 2021,Nordic Seas,MD99-2289,18.5,-0.75,Very cold,Neogloboquadrina,2,0,117.999950499568,0.2991784976802683,0.00549913281612201,0.11198888209898239,0.009069029107275315

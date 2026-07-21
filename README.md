@@ -5,7 +5,7 @@ two-acid AAR age calculator, in support of section 4.1 of the accompanying
 manuscript. Given the manuscript's own fitted TDK (Asp) / SPK (Glu)
 calibration curves, a Bayesian MCMC inversion (bivariate-normal correlated
 residual likelihood) is compared against the manuscript's GLS/softplus
-spreadsheet calculator across the full 128-sample Np calibration set.
+spreadsheet calculator across the full 140-sample Np calibration set.
 
 The analysis is a single self-contained R Markdown notebook,
 [`np_bayesian_age_validation.Rmd`](np_bayesian_age_validation.Rmd), backed
