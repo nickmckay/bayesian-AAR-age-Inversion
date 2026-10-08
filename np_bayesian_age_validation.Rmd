@@ -1,5 +1,5 @@
 ---
-title: "Independent Bayesian Validation of the Np Two-Acid GLS Age Calculator"
+title: "Independent Bayesian Validation of the Np AAR Age Calculator"
 output:
   html_document:
     toc: true
@@ -20,21 +20,23 @@ library(dplyr)
 source("R/mcmc.R")
 source("R/age_calibration.R")
 source("R/age_inversion.R")
-source("R/gls_calculator.R")
+source("R/asp_calculator.R")
 ```
 
 ## Overview
 
-This notebook supports the manuscript "A calibration-based age calculator for high-latitude Quaternary foraminifera using amino acid racemization" by Kaufman and authors. It is currently in preparation for submission. As an independent check on the performance of our Np age calculator, we compared its output to ages produced by a Bayesian inversion method implemented in R. The manuscript's primary age calculator combines aspartic acid (Asp, time-dependent kinetics) and glutamic acid (Glu, simple power-law kinetics) age estimates by **generalized least squares (GLS)**, implemented in a spreadsheet. Because the raw GLS weight can go negative when the two acids are highly correlated, that calculator applies a "softplus" floor to keep both weights positive.
+This notebook supports the manuscript "A calibration-based age calculator for high-latitude Quaternary foraminifera using amino acid racemization" by Kaufman and others. The manuscript's age calculator computes the age of a *Neogloboquadrina pachyderma* (Np) sample from the D/L of aspartic acid (Asp) alone, through the time-dependent kinetics (TDK0) equation. Glutamic acid (Glu) is not combined into the age. Its simple power-law (SPK0) age is retained only as a quality check, because the Glu log-age residual equals the Asp residual plus independent noise and so carries no age information that Asp does not already carry.
 
-Two independent tests are performed here, documented in the manuscript:
+We test that claim, and the calculator itself, against an independent Bayesian implementation written in R:
 
-- **Test 1 (constant, parameters from OLS):** the manuscript's TDK (Asp) and SPK (Glu) calibration curves and their correlated residual structure (`gls_calibration_constants` in `R/gls_calculator.R`, are supplied directly to a Bayesian MCMC inversion (`log_lik_two_acid_age()` in `R/age_inversion.R`), which infers a full posterior distribution for a sample's age from its Asp and Glu D/L using a bivariate-normal correlated-residual likelihood, rather than an algebraic GLS combination of two point estimates. This isolates the **inversion/combination** step: no calibration constants are re-estimated, so any agreement or disagreement reflects how the two acids' evidence is combined, not differences in how the underlying curves were fit.
-- **Test 2 (independent joint Bayesian calibration refit):** a more independent test, in which both calibration curves *and* their shared residual correlation are estimated simultaneously from the raw D/L data by MCMC (`log_posterior_age_calibration()` in `R/age_calibration.R`), before inverting ages from that independently-refit calibration.
+- **Test 1 (published constants):** the manuscript's TDK0 (Asp) and SPK0 (Glu) calibration constants and their residual correlation are supplied directly to a Bayesian MCMC inversion (`log_lik_two_acid_age()` in `R/age_inversion.R`) that uses *both* amino acids, through a bivariate-normal correlated-residual likelihood, to infer a full posterior distribution for each sample's age. If Glu carries no independent age information, this two-acid posterior should return the Asp-only age. No calibration constants are re-estimated, so the test isolates the question of how the two acids' evidence combines.
+- **Test 2 (independent joint Bayesian calibration refit):** both calibration curves *and* their shared residual correlation are estimated simultaneously from the raw D/L data by MCMC (`log_posterior_age_calibration()` in `R/age_calibration.R`), and ages are then inverted from that independently refit calibration.
+
+The earlier version of this notebook (release v0.1-presubmission) compared the Bayesian inversion with a blended Asp + Glu calculator based on generalized least squares. The manuscript no longer uses that calculator, and it has been removed here.
 
 ## Calibration models
 
-Asp D/L-age data are described by **time-dependent kinetics (TDK)**, and Glu by **simple power-law kinetics (SPK)**:
+Asp D/L-age data are described by **time-dependent kinetics (TDK)**, and Glu by **simple power-law kinetics (SPK)**, both with the origin fixed at zero:
 
 $$t_\mathrm{Asp} = a_\mathrm{Asp} \cdot \mathrm{atanh}(D/L_\mathrm{Asp})^{e_\mathrm{Asp}}
 \qquad
@@ -44,241 +46,261 @@ t_\mathrm{Glu} = a_\mathrm{Glu} \cdot (D/L_\mathrm{Glu})^{e_\mathrm{Glu}}$$
 
 ## The calibration dataset
 
-The 140-sample Np calibration dataset (Arctic Ocean, Nordic Seas, North Atlantic, and Southern Ocean cores; ages 2 ka to 1.4 Myr).
+The 140-sample Np calibration dataset (Table S1 of the manuscript; Arctic Ocean, Nordic Seas, North Atlantic, and Southern Ocean cores; ages 2 ka to 1.4 Ma). The `r sum(read.csv("data/np_calibration.csv")$hydrolysis_normalized)` samples from core MD99-2289 were analyzed at the University of York with a 22 hr hydrolysis, and their D/L values have already been normalized to 6 hr equivalents in Table S1.
 
 ```{r load_data}
 np <- read.csv("data/np_calibration.csv")
-
-# A few single-replicate samples (n_used == 1) have no replicate SD ("-" or
-# blank in the source table); treat those as zero replicate variance, i.e.
-# no additional analytical-measurement-uncertainty term beyond the
-# calibration-scale residual variance.
-np$SD_Asp <- suppressWarnings(as.numeric(np$SD_Asp))
-np$SD_Asp[is.na(np$SD_Asp)] <- 0
-np$SD_Glu <- suppressWarnings(as.numeric(np$SD_Glu))
-np$SD_Glu[is.na(np$SD_Glu)] <- 0
+nrow(np)
+table(np$region)
+head(np[, c("UAL", "core", "age_ka", "DL_Asp", "SD_Asp", "DL_Glu", "SD_Glu", "n_used")])
 
 cal_data <- data.frame(age_ka = np$age_ka, DL_Asp = np$DL_Asp, DL_Glu = np$DL_Glu)
-nrow(cal_data)
-head(cal_data)
 ```
 
 ```{r plot_data, fig.height=4}
-ggplot(np, aes(x = DL_Asp, y = DL_Glu, colour = age_ka)) + geom_point(size = 1.8) + scale_colour_viridis_c(trans = "log10", name = "Age (ka)") + labs(x = "D/L Asp", y = "D/L Glu",      title = "Np calibration dataset: Asp vs. Glu D/L") +
+ggplot(np, aes(x = DL_Asp, y = DL_Glu, colour = age_ka)) +
+  geom_point(size = 1.8) +
+  scale_colour_viridis_c(trans = "log10", name = "Age (ka)") +
+  labs(x = "D/L Asp", y = "D/L Glu", title = "Np calibration dataset: Asp vs. Glu D/L") +
   theme_bw()
 ```
 
-## Test 1: supplying the calibration constants directly
+## The Asp-only reference calculator
 
-The manuscript describes how each acid's TDK/SPK curve is fit independently by ordinary least squares (OLS) regression of `log(age)` on `log(f(D/L))`, then separately estimates the residual correlation `rho` between the two acids' fitted residuals. `gls_calibration_constants` (`R/gls_calculator.R`) reproduces that fit exactly:
+`predict_age_asp_only()` (`R/asp_calculator.R`) reproduces the formulas of the manuscript's spreadsheet calculator: the TDK0 age from Asp, with a Student-t prediction interval whose variance combines the calibration mean squared error, the sample's leverage on the fitted line, and the standard error of the mean D/L propagated through the model derivative. The constants in `asp_calibration_constants` are copied from the spreadsheet's Constants sheet.
+
+As a check that the dataset here is the one the manuscript was fit to, we refit both curves by ordinary least squares (OLS) regression of `log(age)` on `log(f(D/L))`:
 
 ```{r ols_check}
 fit_asp <- lm(log(age_ka) ~ log(atanh(DL_Asp)), data = np)
 fit_glu <- lm(log(age_ka) ~ log(DL_Glu), data = np)
-data.frame(
-  acid  = c("Asp", "Glu"),
-  a_fit = c(exp(coef(fit_asp)[1]), exp(coef(fit_glu)[1])),
-  e_fit = c(coef(fit_asp)[2], coef(fit_glu)[2]),
-  a_OLS = c(gls_calibration_constants$a_Asp, gls_calibration_constants$a_Glu),
-  e_OLS = c(gls_calibration_constants$e_Asp, gls_calibration_constants$e_Glu),
+cst <- asp_calibration_constants
+
+ols_check <- data.frame(
+  parameter = c("a_Asp", "e_Asp", "sigma_Asp", "a_Glu", "e_Glu", "sigma_Glu", "rho"),
+  refit_here = c(exp(coef(fit_asp)[1]), coef(fit_asp)[2], summary(fit_asp)$sigma,
+                 exp(coef(fit_glu)[1]), coef(fit_glu)[2], summary(fit_glu)$sigma,
+                 cor(resid(fit_asp), resid(fit_glu))),
+  published = c(cst$a_Asp, cst$e_Asp, sqrt(cst$MSE_Asp),
+                cst$a_Glu, cst$e_Glu, sqrt(cst$MSE_Glu), cst$rho),
   row.names = NULL
 )
+ols_check$pct_diff <- 100 * (ols_check$refit_here - ols_check$published) / ols_check$published
+knitr::kable(ols_check, digits = 4)
 ```
 
-Using these constants directly, with the GLS calculator's mean-squared-error terms (`MSE_Asp`, `MSE_Glu`) giving the calibration-scale residual standard deviations on the log-age scale:
+The refit reproduces the published residual standard deviations and correlation to the third decimal place and the scale parameters to within a few tenths of a percent. The small remaining differences are consistent with Table S1 reporting ages rounded to the nearest ka. All tests below use the published constants.
 
-```{r calib_params_A}
-calib_params_A <- list(
-  a_Asp     = gls_calibration_constants$a_Asp,
-  e_Asp     = gls_calibration_constants$e_Asp,
-  sigma_Asp = sqrt(gls_calibration_constants$MSE_Asp),
-  a_Glu     = gls_calibration_constants$a_Glu,
-  e_Glu     = gls_calibration_constants$e_Glu,
-  sigma_Glu = sqrt(gls_calibration_constants$MSE_Glu),
-  rho       = gls_calibration_constants$rho
-)
-calib_params_A
+The spreadsheet's Glu quality check can be reproduced from the same constants:
+
+```{r glu_check}
+asp_ref <- predict_age_asp_only(np$DL_Asp, np$SD_Asp, np$DL_Glu, np$SD_Glu, np$n_used)
+disc <- log(asp_ref$t_Asp / asp_ref$t_Glu)
+data.frame(
+  sd_ln_discordance   = sd(disc),
+  mean_ln_discordance = mean(disc),
+  n_check_95          = sum(asp_ref$flag != "ok"),
+  n_fail_99           = sum(asp_ref$flag == "FAIL (>99%)")
+) |> knitr::kable(digits = 3)
 ```
 
-```{r plot_fit_A, fig.height=4.5}
-dl_seq <- seq(0.01, 0.99, length.out = 200)
+### Why Glu should receive no weight
 
-curves_A <- rbind(
-  data.frame(acid = "Aspartic acid (TDK)", DL = dl_seq,
-             age_ka = predict_age_asp(dl_seq, calib_params_A$a_Asp, calib_params_A$e_Asp)),
-  data.frame(acid = "Glutamic acid (SPK)", DL = dl_seq,
-             age_ka = predict_age_glu(dl_seq, calib_params_A$a_Glu, calib_params_A$e_Glu))
-)
+For two correlated, unbiased estimates of log age with residual standard deviations $\sigma_\mathrm{Asp}$ and $\sigma_\mathrm{Glu}$ and correlation $\rho$, the optimal (generalized least squares, or equivalently flat-prior Bayesian) weight on Glu is proportional to $\sigma_\mathrm{Asp}(\sigma_\mathrm{Asp} - \rho\,\sigma_\mathrm{Glu})$. It vanishes when $\rho = \sigma_\mathrm{Asp} / \sigma_\mathrm{Glu}$:
 
-obs <- rbind(
-  data.frame(acid = "Aspartic acid (TDK)", DL = np$DL_Asp, age_ka = np$age_ka),
-  data.frame(acid = "Glutamic acid (SPK)", DL = np$DL_Glu, age_ka = np$age_ka)
-)
-
-ggplot() +
-  geom_point(data = obs, aes(x = DL, y = age_ka), size = 1.2, alpha = 0.4) +
-  geom_line(data = curves_A, aes(x = DL, y = age_ka), colour = "steelblue", linewidth = 1) +
-  scale_y_log10() +
-  facet_wrap(~acid, scales = "free_x") +
-  labs(x = "D/L", y = "Age (ka BP)",
-       title = "Np AAR age calibration curves: OLS fit") +
-  theme_bw()
+```{r zero_weight}
+sA <- sqrt(cst$MSE_Asp); sG <- sqrt(cst$MSE_Glu); r <- cst$rho
+C  <- r * sA * sG
+data.frame(
+  rho                  = r,
+  sigma_Asp_over_Glu   = sA / sG,
+  Glu_weight           = (sA^2 - C) / (sA^2 + sG^2 - 2 * C),
+  sigma_Asp_only       = sA,
+  sigma_two_acid       = sqrt((sA^2 * sG^2 - C^2) / (sA^2 + sG^2 - 2 * C))
+) |> knitr::kable(digits = 4)
 ```
+
+At the calibration level, the observed correlation sits almost exactly at the value at which Glu gets zero weight, and combining the two acids leaves the Asp-only uncertainty unchanged. For an individual sample the two prediction variances also include leverage and measurement error, which can move the ratio away from $\rho$, so the Glu weight is not exactly zero for every sample. Test 1 measures how much that matters.
+
+## Test 1: supplying the published constants
+
+The Bayesian inversion uses a bivariate-normal likelihood for the Asp and Glu log-age residuals, a flat prior on log age between 0.5 and 3000 ka, and a random-walk Metropolis sampler. For each sample, the residual standard deviations are set to the *same per-sample prediction variances* that the calculator uses (`V_Asp`, and the analogous `V_Glu`), so that the Bayesian inversion and the Asp-only calculator use the same information about each sample. The only difference between them is that the Bayesian posterior also uses Glu.
 
 ### Two worked examples
 
-Two worked examples from the spreadsheet calculator provide a direct check: their GLS-combined ages and 66% ("likely") prediction intervals can be compared against the Bayesian posterior for the same D/L inputs, using the OLS-derived calibration constants above (i.e. isolating the inversion step).
+The two worked examples in the spreadsheet calculator. Example 2 was measured with a 22 hr hydrolysis and is first normalized to its 6 hr equivalent, as the spreadsheet does.
 
-```{r stage2a_examples, cache=TRUE}
-examples <- list(
-  "Example 1" = list(DL_Asp = 0.350, DL_Glu = 0.153,
-                     gls_median = 176.25, gls_lo66 = 119.47, gls_hi66 = 260.03),
-  "Example 2" = list(DL_Asp = 0.272, DL_Glu = 0.110,
-                     gls_median = 82.59, gls_lo66 = 49.97, gls_hi66 = 136.52)
+```{r examples, cache=TRUE}
+examples <- data.frame(
+  sample = c("Example 1", "Example 2"),
+  N = c(6, 5), hydrolysis_hr = c(6, 22),
+  DL_Asp = c(0.350, 0.232), SD_Asp = c(0.011, 0.012),
+  DL_Glu = c(0.153, 0.090), SD_Glu = c(0.015, 0.011)
 )
+is22 <- examples$hydrolysis_hr == 22
+examples$DL_Asp[is22] <- normalize_22hr(examples$DL_Asp[is22], cst$delta_Asp)
+examples$DL_Glu[is22] <- normalize_22hr(examples$DL_Glu[is22], cst$delta_Glu)
+
+two_acid_params <- function(ref, constants = cst) {
+  list(a_Asp = constants$a_Asp, e_Asp = constants$e_Asp, sigma_Asp = sqrt(ref$V_Asp),
+       a_Glu = constants$a_Glu, e_Glu = constants$e_Glu, sigma_Glu = sqrt(ref$V_Glu),
+       rho = constants$rho)
+}
 
 set.seed(1)
-mcmc_examples <- lapply(examples, function(ex) {
-  invert_two_acid_age(DL_Asp_obs = ex$DL_Asp, DL_Glu_obs = ex$DL_Glu,
-                      calib_params = calib_params_A, n_iter = 30000)
+example_runs <- lapply(seq_len(nrow(examples)), function(i) {
+  ex  <- examples[i, ]
+  ref <- predict_age_asp_only(ex$DL_Asp, ex$SD_Asp, ex$DL_Glu, ex$SD_Glu, ex$N)
+  mc  <- invert_two_acid_age(ex$DL_Asp, ex$DL_Glu, two_acid_params(ref),
+                             n_iter = 50000, proposal_sd = 2.5 * ref$sigma_Asp)
+  list(ref = ref, mcmc = mc)
 })
 
-comparison <- do.call(rbind, lapply(names(examples), function(nm) {
-  post <- summarize_age_posterior(mcmc_examples[[nm]], burnin = 5000)
-  data.frame(sample        = nm,
-             bayes_median  = post$median_ka,
-             bayes_lo66    = post$lo66_ka,
-             bayes_hi66    = post$hi66_ka,
-             gls_median    = examples[[nm]]$gls_median,
-             gls_lo66      = examples[[nm]]$gls_lo66,
-             gls_hi66      = examples[[nm]]$gls_hi66)
-}))
-
-knitr::kable(comparison, digits = 1)
+do.call(rbind, lapply(seq_along(example_runs), function(i) {
+  ref  <- example_runs[[i]]$ref
+  post <- summarize_age_posterior(example_runs[[i]]$mcmc, burnin = 5000)
+  data.frame(sample = examples$sample[i],
+             asp_age = ref$t_Asp, asp_lo66 = ref$lo66, asp_hi66 = ref$hi66,
+             bayes_median = post$median_ka, bayes_lo66 = post$lo66_ka,
+             bayes_hi66 = post$hi66_ka, glu_age = ref$t_Glu, check = ref$flag)
+})) |> knitr::kable(digits = 1)
 ```
 
 ```{r plot_examples, fig.height=4}
-plot_age_posterior(mcmc_examples[["Example 1"]], burnin = 5000,
-                   compare_ages_ka = c("GLS combined" = 176.25)) +
+plot_age_posterior(example_runs[[1]]$mcmc, burnin = 5000,
+                   compare_ages_ka = c("Asp only" = example_runs[[1]]$ref$t_Asp,
+                                       "Glu only" = example_runs[[1]]$ref$t_Glu)) +
   labs(subtitle = "Example 1: DL_Asp = 0.350, DL_Glu = 0.153")
 ```
 
 ### Full calibration-set comparison
 
-The manuscript's validation compares GLS against a Bayesian inversion across the **entire 140-sample calibration set**, not just two worked examples. For every sample we compute:
+For every one of the 140 calibration samples we compute the Asp-only age and 66% prediction interval with `predict_age_asp_only()`, and the two-acid Bayesian posterior median and 66% credible interval by MCMC. Because the prior is flat in log age and the likelihood is Gaussian in log age, the two-acid posterior also has a closed form (a precision-weighted mean of the two log ages), which we compute alongside the MCMC result to separate genuine differences from Monte Carlo noise.
 
-- the reference **GLS** age and 66% interval via `predict_age_gls()`, using the manuscript's own fitted calibration constants (`gls_calibration_constants`) and each sample's observed D/L, replicate SD, and number of replicates (`n_used`);
-- the **Bayesian** posterior median age and 66% credible interval via `invert_two_acid_age()`, using the same OLS-derived calibration curve. The Bayesian likelihood uses the *same per-sample prediction variance* that `predict_age_gls()` computes internally (`V_Asp`, `V_Glu`: the calibration-scale residual variance inflated for each sample's position along the calibration curve and its replicate measurement uncertainty), so that both methods answer the same question with the same information about each sample, not just the same curve.
+```{r test1_full, cache=TRUE}
+n_iter_full <- 100000
+burnin_full <- 20000
 
-```{r stage2b_full, cache=TRUE}
-n_iter_full  <- 100000
-burnin_full  <- 20000
-
-run_full_comparison <- function(constants, seed, per_sample_variance) {
-  set.seed(seed)
-  res <- lapply(seq_len(nrow(np)), function(i) {
-    row <- np[i, ]
-
-    gls  <- predict_age_gls(DL_Asp = row$DL_Asp, SD_Asp = row$SD_Asp,
-                            N_Asp = row$n_used,
-                            DL_Glu = row$DL_Glu, SD_Glu = row$SD_Glu,
-                            N_Glu = row$n_used)
-
-    if (per_sample_variance) {
-      calib_params <- list(a_Asp = constants$a_Asp, e_Asp = constants$e_Asp,
-                           sigma_Asp = sqrt(gls$V_Asp),
-                           a_Glu = constants$a_Glu, e_Glu = constants$e_Glu,
-                           sigma_Glu = sqrt(gls$V_Glu),
-                           rho = constants$rho)
-      prop_sd <- 2.5 * sqrt(gls$V_total)
-    } else {
-      calib_params <- constants
-      prop_sd <- 0.3
-    }
-
-    mcmc_i <- invert_two_acid_age(DL_Asp_obs = row$DL_Asp, DL_Glu_obs = row$DL_Glu,
-                                  calib_params = calib_params, n_iter = n_iter_full,
-                                  proposal_sd = prop_sd)
-    bayes  <- summarize_age_posterior(mcmc_i, burnin = burnin_full)
-
-    data.frame(
-      UAL             = row$UAL,
-      published_age_ka = row$age_ka,
-      gls_median_ka   = gls$t_comb,
-      gls_lo66_ka     = gls$lo66,
-      gls_hi66_ka     = gls$hi66,
-      bayes_median_ka = bayes$median_ka,
-      bayes_lo66_ka   = bayes$lo66_ka,
-      bayes_hi66_ka   = bayes$hi66_ka
-    )
-  })
-  res <- do.call(rbind, res)
-  res |>
-    mutate(
-      pct_diff_median  = 100 * (bayes_median_ka - gls_median_ka) / gls_median_ka,
-      gls_width66      = gls_hi66_ka - gls_lo66_ka,
-      bayes_width66    = bayes_hi66_ka - bayes_lo66_ka,
-      pct_diff_width66 = 100 * (bayes_width66 - gls_width66) / gls_width66
-    )
+closed_form_two_acid <- function(ref, rho) {
+  C  <- rho * sqrt(ref$V_Asp * ref$V_Glu)
+  wA <- ref$V_Glu - C
+  wG <- ref$V_Asp - C
+  data.frame(
+    w_Glu  = wG / (wA + wG),
+    median = exp((wA * log(ref$t_Asp) + wG * log(ref$t_Glu)) / (wA + wG)),
+    sigma  = sqrt((ref$V_Asp * ref$V_Glu - C^2) / (wA + wG))
+  )
 }
 
-full_results_A <- run_full_comparison(calib_params_A, seed = 7, per_sample_variance = TRUE)
+run_full_comparison <- function(param_fn, seed) {
+  set.seed(seed)
+  do.call(rbind, lapply(seq_len(nrow(np)), function(i) {
+    row <- np[i, ]
+    ref <- predict_age_asp_only(row$DL_Asp, row$SD_Asp, row$DL_Glu, row$SD_Glu, row$n_used)
+    mc  <- invert_two_acid_age(row$DL_Asp, row$DL_Glu, param_fn(ref),
+                               n_iter = n_iter_full, proposal_sd = 2.5 * ref$sigma_Asp)
+    post <- summarize_age_posterior(mc, burnin = burnin_full)
+    data.frame(UAL = row$UAL, published_age_ka = row$age_ka,
+               asp_age_ka = ref$t_Asp, asp_lo66_ka = ref$lo66, asp_hi66_ka = ref$hi66,
+               bayes_median_ka = post$median_ka,
+               bayes_lo66_ka = post$lo66_ka, bayes_hi66_ka = post$hi66_ka,
+               acceptance = mc$acceptance_rate)
+  })) |>
+    mutate(pct_diff_median = 100 * (bayes_median_ka - asp_age_ka) / asp_age_ka,
+           asp_width66     = asp_hi66_ka - asp_lo66_ka,
+           bayes_width66   = bayes_hi66_ka - bayes_lo66_ka)
+}
 
-summary_table_A <- data.frame(
-  median_pct_diff_age = median(abs(full_results_A$pct_diff_median)),
-  max_pct_diff_age    = max(abs(full_results_A$pct_diff_median)),
-  median_width_ratio  = median(full_results_A$bayes_width66 / full_results_A$gls_width66)
-)
-knitr::kable(summary_table_A, digits = 2,
-             col.names = c("Median abs. % diff (age)",
-                           "Max abs. % diff (age)", "Median width ratio (Bayes/GLS)"))
+full_results_A <- run_full_comparison(two_acid_params, seed = 7)
+
+cf_A <- closed_form_two_acid(asp_ref, cst$rho)
+full_results_A$cf_median_ka   <- cf_A$median
+full_results_A$cf_pct_diff    <- 100 * (cf_A$median - asp_ref$t_Asp) / asp_ref$t_Asp
+full_results_A$cf_sigma_ratio <- cf_A$sigma / asp_ref$sigma_Asp
+full_results_A$w_Glu          <- cf_A$w_Glu
+range(full_results_A$acceptance)
 ```
 
+```{r test1_summary}
+summary_A <- with(full_results_A, data.frame(
+  method = c("MCMC posterior", "Closed-form posterior"),
+  median_abs_pct_diff = c(median(abs(pct_diff_median)), median(abs(cf_pct_diff))),
+  max_abs_pct_diff    = c(max(abs(pct_diff_median)), max(abs(cf_pct_diff))),
+  n_over_1pct         = c(sum(abs(pct_diff_median) > 1), sum(abs(cf_pct_diff) > 1)),
+  median_width_ratio  = c(median(bayes_width66 / asp_width66), median(cf_sigma_ratio))
+))
+knitr::kable(summary_A, digits = 2,
+             col.names = c("", "Median abs. % diff", "Max abs. % diff",
+                           "Samples > 1%", "Median 66% width ratio (two-acid / Asp)"))
+```
+
+The closed-form width ratio is the ratio of log-age standard deviations, which is equivalent to the ratio of 66% interval widths.
+
 ```{r plot_parity_A, fig.height=5}
-ggplot(full_results_A, aes(x = gls_median_ka, y = bayes_median_ka)) +
+ggplot(full_results_A, aes(x = asp_age_ka, y = bayes_median_ka)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey40") +
   geom_point(alpha = 0.6, colour = "steelblue") +
-  scale_x_log10() +
-  scale_y_log10() +
-  labs(x = "GLS combined age (ka, spreadsheet method)",
-       y = "Bayesian posterior median age (ka)",
-       title = "Test 1: GLS vs. Bayesian age estimates across the Np calibration set",
-       subtitle = "Constant, OLS-derived calibration parameters; dashed line: 1:1") +
+  scale_x_log10() + scale_y_log10() +
+  labs(x = "Asp-only age (ka, spreadsheet method)",
+       y = "Two-acid Bayesian posterior median age (ka)",
+       title = "Test 1: Asp-only vs. two-acid Bayesian ages",
+       subtitle = "Published calibration constants; dashed line: 1:1") +
   theme_bw()
+```
+
+```{r plot_age_dependence_A, fig.height=4.5}
+ggplot(full_results_A, aes(x = published_age_ka)) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
+  geom_point(aes(y = pct_diff_median, colour = "MCMC"), alpha = 0.6) +
+  geom_point(aes(y = cf_pct_diff, colour = "Closed form"), alpha = 0.8, shape = 4) +
+  scale_x_log10() +
+  scale_colour_manual(values = c("MCMC" = "steelblue", "Closed form" = "grey20"), name = NULL) +
+  labs(x = "Published age (ka)", y = "Two-acid minus Asp-only, % of Asp-only age",
+       title = "Test 1: difference between two-acid and Asp-only ages vs. sample age") +
+  theme_bw() + theme(legend.position = "bottom")
 ```
 
 ```{r plot_interval_width_A, fig.height=5}
-ggplot(full_results_A, aes(x = gls_width66, y = bayes_width66)) +
+ggplot(full_results_A, aes(x = asp_width66, y = bayes_width66)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey40") +
   geom_point(alpha = 0.6, colour = "steelblue") +
-  scale_x_log10() +
-  scale_y_log10() +
-  labs(x = "GLS 66% interval width (ka)",
-       y = "Bayesian 66% credible interval width (ka)",
-       title = "Test 1: prediction/credible interval widths, GLS vs. Bayesian",
-       subtitle = "Constant, OLS-derived calibration parameters; dashed line: 1:1") +
+  scale_x_log10() + scale_y_log10() +
+  labs(x = "Asp-only 66% prediction interval width (ka)",
+       y = "Two-acid Bayesian 66% credible interval width (ka)",
+       title = "Test 1: interval widths, Asp-only vs. two-acid Bayesian",
+       subtitle = "Published calibration constants; dashed line: 1:1") +
   theme_bw()
 ```
 
-```{r table_full_A, echo=FALSE}
-knitr::kable(head(full_results_A, 10), digits = 2,
-             caption = "First 10 of 140 calibration samples, Test 1 (full table omitted for brevity)")
-```
-
-When the calibration constants derived from the manuscript's own fits are supplied directly to the Bayesian inversion, the resulting age estimates are essentially identical to those from the GLS calculator across the full calibration range: the median absolute difference here is `r sprintf("%.1f%%", median(abs(full_results_A$pct_diff_median)))`, attributable to the small number of samples where softplus regularisation in the GLS method nudges the GLS weights away from their unconstrained values (see below). The 66% prediction and credible intervals are likewise essentially identical between the two methods (median width ratio close to 1). This agreement is expected because, for a flat prior and Gaussian log-age residuals, the Bayesian posterior mode and variance reduce algebraically to the GLS point estimate and combined variance, given the same calibration curve and the same per-sample prediction variance.
-
-```{r softplus_samples_A, echo=FALSE}
+```{r largest_A, echo=FALSE}
 full_results_A |>
-  arrange(desc(abs(pct_diff_median))) |>
-  head(5) |>
-  select(UAL, published_age_ka, gls_median_ka, bayes_median_ka, pct_diff_median) |>
-  knitr::kable(digits = 2,
-               caption = "The five samples with the largest Test 1 GLS/Bayes divergence, consistent with softplus regularization")
+  left_join(np[, c("UAL", "core", "DL_Asp", "DL_Glu", "n_used")], by = "UAL") |>
+  arrange(desc(abs(cf_pct_diff))) |>
+  head(8) |>
+  select(UAL, core, published_age_ka, DL_Asp, DL_Glu, n_used, asp_age_ka,
+         cf_median_ka, cf_pct_diff, w_Glu) |>
+  knitr::kable(digits = 3,
+               caption = "The eight samples with the largest closed-form two-acid vs. Asp-only differences")
 ```
+
+```{r test1_age_bins, echo=FALSE}
+young_A <- full_results_A$published_age_ka < 30
+data.frame(
+  subset = c("< 30 ka", ">= 30 ka"),
+  n = c(sum(young_A), sum(!young_A)),
+  median_abs_pct_diff_closed_form = c(median(abs(full_results_A$cf_pct_diff[young_A])),
+                                      median(abs(full_results_A$cf_pct_diff[!young_A]))),
+  max_abs_pct_diff_closed_form = c(max(abs(full_results_A$cf_pct_diff[young_A])),
+                                   max(abs(full_results_A$cf_pct_diff[!young_A])))
+) |> knitr::kable(digits = 2)
+```
+
+Supplied with the published calibration constants, the two-acid Bayesian posterior returns the Asp-only age. Across the 140 calibration samples the median absolute difference in the posterior median is `r sprintf("%.1f%%", median(abs(full_results_A$pct_diff_median)))` for the MCMC estimate, of which most is Monte Carlo noise: the exact closed-form posterior differs from the Asp-only age by a median of `r sprintf("%.2f%%", median(abs(full_results_A$cf_pct_diff)))`. The 66% interval widths match (median ratio `r sprintf("%.2f", median(full_results_A$bayes_width66 / full_results_A$asp_width66))` for MCMC, `r sprintf("%.3f", median(full_results_A$cf_sigma_ratio))` closed form). The largest individual differences, up to `r sprintf("%.0f%%", max(abs(full_results_A$cf_pct_diff)))`, are in samples younger than 30 ka, where D/L values are low, measurement error makes up a large share of each sample's prediction variance, and the per-sample ratio of Asp to Glu prediction error departs from $\rho$. These are small relative to the ±32% half-width of the 66% interval.
 
 ## Test 2: an independent joint Bayesian calibration refit
 
-As a more independent test, both calibration curves *and* their shared residual correlation are now estimated simultaneously from the raw D/L data by MCMC, using `log_lik_age_calibration()`'s bivariate-normal likelihood and weakly informative priors on all seven parameters (scale, exponent, and residual SD per acid, plus the Fisher-z-transformed correlation), with no numbers imported from the spreadsheet at all: 
+As a more independent test, both calibration curves *and* their shared residual correlation are now estimated simultaneously from the raw D/L data by MCMC, using `log_lik_age_calibration()`'s bivariate-normal likelihood and weakly informative priors on all seven parameters (scale, exponent, and residual SD per acid, plus the Fisher-z-transformed correlation), with no numbers imported from the spreadsheet:
+
 ```{r prior_table, echo=FALSE}
 knitr::kable(data.frame(
   Parameter = c("log(a_Asp)", "e_Asp", "log(sigma_Asp)",
@@ -291,12 +313,12 @@ knitr::kable(data.frame(
 
 ```{r mcmc_stage1, cache=TRUE}
 init_cal <- c(log_a_Asp = log(3000), e_Asp = 2.5, log_sigma_Asp = log(0.4),
-             log_a_Glu = log(9000), e_Glu = 2.2, log_sigma_Glu = log(0.4),
-             z_rho = 0)
+              log_a_Glu = log(9000), e_Glu = 2.2, log_sigma_Glu = log(0.4),
+              z_rho = 0)
 
 prop_cal <- c(log_a_Asp = 0.02, e_Asp = 0.015, log_sigma_Asp = 0.03,
-             log_a_Glu = 0.02, e_Glu = 0.015, log_sigma_Glu = 0.03,
-             z_rho = 0.06)
+              log_a_Glu = 0.02, e_Glu = 0.015, log_sigma_Glu = 0.03,
+              z_rho = 0.06)
 
 set.seed(42)
 mcmc_cal <- run_mcmc(log_posterior_age_calibration,
@@ -312,70 +334,129 @@ cat("Acceptance rate:", round(mcmc_cal$acceptance_rate * 100, 1), "%\n")
 plot_mcmc_chains(mcmc_cal, burnin = 10000)
 ```
 
+To identify the source of any divergence, we repeat the refit with the residual correlation fixed at zero (`z_rho` held at 0 by giving it a zero proposal step), which makes the joint likelihood separable into the two acids' independent fits:
+
+```{r mcmc_stage1_rho0, cache=TRUE}
+prop_cal_rho0 <- prop_cal
+prop_cal_rho0[["z_rho"]] <- 0
+
+set.seed(43)
+mcmc_cal_rho0 <- run_mcmc(log_posterior_age_calibration,
+                          init        = init_cal,
+                          n_iter      = 40000,
+                          proposal_sd = prop_cal_rho0,
+                          calibration_data = cal_data)
+
+cat("Acceptance rate:", round(mcmc_cal_rho0$acceptance_rate * 100, 1), "%\n")
+```
+
 ```{r calib_params_B}
-calib_params_B <- summarize_calibration(mcmc_cal, burnin = 10000)
-data.frame(
-  parameter = c("a_Asp", "e_Asp", "sigma_Asp", "a_Glu", "e_Glu", "sigma_Glu", "rho"),
-  OLS   = c(gls_calibration_constants$a_Asp, gls_calibration_constants$e_Asp,
-                       sqrt(gls_calibration_constants$MSE_Asp),
-                       gls_calibration_constants$a_Glu, gls_calibration_constants$e_Glu,
-                       sqrt(gls_calibration_constants$MSE_Glu),
-                       gls_calibration_constants$rho),
-  joint_Bayesian_refit = c(calib_params_B$a_Asp, calib_params_B$e_Asp, calib_params_B$sigma_Asp,
-                            calib_params_B$a_Glu, calib_params_B$e_Glu, calib_params_B$sigma_Glu,
-                            calib_params_B$rho)
-) |> knitr::kable(digits = 3)
+calib_params_B    <- summarize_calibration(mcmc_cal, burnin = 10000)
+calib_params_rho0 <- summarize_calibration(mcmc_cal_rho0, burnin = 10000)
+
+param_names <- c("a_Asp", "e_Asp", "sigma_Asp", "a_Glu", "e_Glu", "sigma_Glu", "rho")
+published   <- c(cst$a_Asp, cst$e_Asp, sqrt(cst$MSE_Asp),
+                 cst$a_Glu, cst$e_Glu, sqrt(cst$MSE_Glu), cst$rho)
+refit_B     <- unlist(calib_params_B[param_names])
+refit_rho0  <- unlist(calib_params_rho0[param_names])
+
+param_table <- data.frame(
+  parameter = param_names,
+  published = published,
+  joint_refit = refit_B,
+  joint_pct_diff = 100 * (refit_B - published) / published,
+  rho0_refit = refit_rho0,
+  rho0_pct_diff = 100 * (refit_rho0 - published) / published,
+  row.names = NULL
+)
+param_table$rho0_pct_diff[param_table$parameter == "rho"] <- NA
+knitr::kable(param_table, digits = 3)
+```
+
+Because the scale and exponent of each curve are strongly correlated, a small offset in `a` can be compensated by `e`. The more meaningful comparison is the age each calibration predicts at the observed D/L of the 140 samples:
+
+```{r rho0_ages}
+rho0_age_diff <- data.frame(
+  acid = c("Asp", "Glu"),
+  median_abs_pct_diff = c(
+    median(abs(100 * (predict_age_asp(np$DL_Asp, calib_params_rho0$a_Asp, calib_params_rho0$e_Asp) /
+                      predict_age_asp(np$DL_Asp, cst$a_Asp, cst$e_Asp) - 1))),
+    median(abs(100 * (predict_age_glu(np$DL_Glu, calib_params_rho0$a_Glu, calib_params_rho0$e_Glu) /
+                      predict_age_glu(np$DL_Glu, cst$a_Glu, cst$e_Glu) - 1)))),
+  max_abs_pct_diff = c(
+    max(abs(100 * (predict_age_asp(np$DL_Asp, calib_params_rho0$a_Asp, calib_params_rho0$e_Asp) /
+                   predict_age_asp(np$DL_Asp, cst$a_Asp, cst$e_Asp) - 1))),
+    max(abs(100 * (predict_age_glu(np$DL_Glu, calib_params_rho0$a_Glu, calib_params_rho0$e_Glu) /
+                   predict_age_glu(np$DL_Glu, cst$a_Glu, cst$e_Glu) - 1))))
+)
+knitr::kable(rho0_age_diff, digits = 2,
+             caption = "Predicted-age difference, rho = 0 refit vs. published constants")
 ```
 
 ```{r plot_fit_B, fig.height=4.5}
-curves_B <- rbind(
-  data.frame(acid = "Aspartic acid (TDK)", DL = dl_seq,
-             age_ka = predict_age_asp(dl_seq, calib_params_B$a_Asp, calib_params_B$e_Asp)),
-  data.frame(acid = "Glutamic acid (SPK)", DL = dl_seq,
-             age_ka = predict_age_glu(dl_seq, calib_params_B$a_Glu, calib_params_B$e_Glu))
+dl_seq <- seq(0.01, 0.99, length.out = 200)
+make_curves <- function(p, source) {
+  rbind(
+    data.frame(acid = "Aspartic acid (TDK)", DL = dl_seq,
+               age_ka = predict_age_asp(dl_seq, p$a_Asp, p$e_Asp), source = source),
+    data.frame(acid = "Glutamic acid (SPK)", DL = dl_seq,
+               age_ka = predict_age_glu(dl_seq, p$a_Glu, p$e_Glu), source = source)
+  )
+}
+curves_all <- rbind(make_curves(cst, "Published (Test 1)"),
+                    make_curves(calib_params_B, "Joint Bayesian refit (Test 2)"))
+obs <- rbind(
+  data.frame(acid = "Aspartic acid (TDK)", DL = np$DL_Asp, age_ka = np$age_ka),
+  data.frame(acid = "Glutamic acid (SPK)", DL = np$DL_Glu, age_ka = np$age_ka)
 )
-
-curves_all <- rbind(cbind(curves_A, source = "OLS-derived (Test 1)"),
-                    cbind(curves_B, source = "Joint Bayesian refit (Test 2)"))
 
 ggplot() +
   geom_point(data = obs, aes(x = DL, y = age_ka), size = 1.2, alpha = 0.4) +
   geom_line(data = curves_all, aes(x = DL, y = age_ka, colour = source), linewidth = 1) +
   scale_y_log10() +
+  coord_cartesian(xlim = c(0, 0.7)) +
   facet_wrap(~acid, scales = "free_x") +
   labs(x = "D/L", y = "Age (ka BP)",
-       title = "Np AAR age calibration curves: OLS vs. joint Bayesian refit",
+       title = "Np AAR age calibration curves: published vs. joint Bayesian refit",
        colour = NULL) +
-  theme_bw() +
-  theme(legend.position = "bottom")
+  theme_bw() + theme(legend.position = "bottom")
 ```
-
-The joint refit yields somewhat lower scale and exponent (`a`, `e`) parameters for both Asp and Glu than the OLS fit.
 
 ### Full calibration-set comparison
 
-```{r stage2b_full_B, cache=TRUE}
-full_results_B <- run_full_comparison(calib_params_B, seed = 7, per_sample_variance = FALSE)
+Ages are inverted for all 140 samples from the joint refit (its own residual standard deviations and correlation, without per-sample leverage terms), and compared with the Asp-only calculator.
 
-summary_table_B <- data.frame(
-  median_pct_diff_age = median(abs(full_results_B$pct_diff_median)),
-  max_pct_diff_age    = max(abs(full_results_B$pct_diff_median)),
-  median_width_ratio  = median(full_results_B$bayes_width66 / full_results_B$gls_width66)
-)
-knitr::kable(summary_table_B, digits = 2,
-             col.names = c("Median abs. % diff (age)",
-                           "Max abs. % diff (age)", "Median width ratio (Bayes/GLS)"))
+```{r test2_full, cache=TRUE}
+full_results_B <- run_full_comparison(function(ref) calib_params_B, seed = 7)
+range(full_results_B$acceptance)
+```
+
+```{r test2_summary}
+young_B <- full_results_B$published_age_ka < 50
+old_B   <- full_results_B$published_age_ka > 500
+fit_bias_B <- lm(pct_diff_median ~ log(published_age_ka), data = full_results_B)
+
+data.frame(
+  median_abs_pct_diff = median(abs(full_results_B$pct_diff_median)),
+  max_abs_pct_diff    = max(abs(full_results_B$pct_diff_median)),
+  median_pct_under_50ka = median(full_results_B$pct_diff_median[young_B]),
+  median_pct_over_500ka = median(full_results_B$pct_diff_median[old_B]),
+  slope_pct_per_efold = coef(fit_bias_B)[[2]],
+  median_width_ratio  = median(full_results_B$bayes_width66 / full_results_B$asp_width66)
+) |> knitr::kable(digits = 2,
+                  col.names = c("Median abs. % diff", "Max abs. % diff",
+                                "Median % diff, < 50 ka", "Median % diff, > 500 ka",
+                                "Trend (% per e-fold in age)", "Median 66% width ratio"))
 ```
 
 ```{r plot_parity_B, fig.height=5}
-ggplot(full_results_B, aes(x = gls_median_ka, y = bayes_median_ka)) +
+ggplot(full_results_B, aes(x = asp_age_ka, y = bayes_median_ka)) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey40") +
   geom_point(alpha = 0.6, colour = "firebrick") +
-  scale_x_log10() +
-  scale_y_log10() +
-  labs(x = "GLS combined age (ka, spreadsheet method)",
-       y = "Bayesian posterior median age (ka)",
-       title = "Test 2: GLS vs. Bayesian age estimates across the Np calibration set",
+  scale_x_log10() + scale_y_log10() +
+  labs(x = "Asp-only age (ka, spreadsheet method)",
+       y = "Two-acid Bayesian posterior median age (ka)",
+       title = "Test 2: Asp-only vs. joint-refit Bayesian ages",
        subtitle = "Independent joint Bayesian calibration refit; dashed line: 1:1") +
   theme_bw()
 ```
@@ -384,26 +465,53 @@ ggplot(full_results_B, aes(x = gls_median_ka, y = bayes_median_ka)) +
 ggplot(full_results_B, aes(x = published_age_ka, y = pct_diff_median)) +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey40") +
   geom_point(alpha = 0.6, colour = "firebrick") +
-  geom_smooth(method = "loess", se = FALSE, colour = "grey20", linewidth = 0.6) +
+  geom_smooth(method = "loess", formula = y ~ x, se = FALSE, colour = "grey20", linewidth = 0.6) +
   scale_x_log10() +
   labs(x = "Published age (ka)",
-       y = "Bayesian minus GLS, as % of GLS age",
-       title = "Test 2: age-dependent bias of the joint Bayesian refit relative to GLS",
-       subtitle = "Joint refit predicts systematically younger ages at the old end of the calibration range") +
+       y = "Bayesian minus Asp-only, % of Asp-only age",
+       title = "Test 2: age dependence of the joint-refit difference") +
   theme_bw()
 ```
 
-```{r table_full_B, echo=FALSE}
-knitr::kable(head(full_results_B, 10), digits = 2,
-             caption = "First 10 of 140 calibration samples, Test 2 (full table omitted for brevity)")
-```
-
-This joint approach produces estimates that diverge from the GLS calculator by a median of `r sprintf("%.0f%%", median(abs(full_results_B$pct_diff_median)))` and up to `r sprintf("%.0f%%", max(abs(full_results_B$pct_diff_median)))` for individual samples. The largest individual percent differences are concentrated among the youngest samples, where a small absolute age offset translates into a large percentage; the largest single divergence in the 140-sample set (43%) is a 6 ka sample, not an old one. Considered as a trend rather than a single extreme case, the joint Bayesian refit predicts systematically older ages at the young end of the calibration range and systematically younger ages at the old end (`r {fit_bias <- lm(pct_diff_median ~ log(published_age_ka), data = full_results_B); sprintf("slope = %.1f %% per e-fold in age, p %s", coef(fit_bias)[2], format.pval(summary(fit_bias)$coefficients[2,4], digits = 2, eps = 1e-300))}`), consistent with the old-end young bias already identified in the LOOCV analysis. The cause of the divergence is that jointly estimating the residual correlation alongside both curves' shapes lets the MCMC trade a small loss in either curve's marginal fit for a gain in the joint bivariate-normal density via a better-correlated residual pattern, so the joint maximum is no longer separable into the two curves' independent OLS optima. We can confirm this by refitting with `z_rho` fixed at 0, which recovers the OLS-dervied constants almost exactly. Despite these differences in point estimates, the two methods produce 66% PI widths that are nearly identical (median width ratio of `r sprintf("%.2f", median(full_results_B$bayes_width66 / full_results_B$gls_width66))`, i.e. a few percent wider for the Bayesian approach).
+The joint refit returns calibration constants that differ from the published ones (table above), and its ages differ from the Asp-only calculator by a median of `r sprintf("%.1f%%", median(abs(full_results_B$pct_diff_median)))` and at most `r sprintf("%.0f%%", max(abs(full_results_B$pct_diff_median)))`. The difference is systematic with age, from a median of `r sprintf("%+.0f%%", median(full_results_B$pct_diff_median[young_B]))` below 50 ka to `r sprintf("%+.0f%%", median(full_results_B$pct_diff_median[old_B]))` above 500 ka (`r sprintf("slope = %.1f%% per e-fold in age, p %s", coef(fit_bias_B)[2], format.pval(summary(fit_bias_B)$coefficients[2, 4], digits = 2, eps = 1e-300))`). Its origin is the residual correlation: jointly estimating `rho` alongside both curves' shapes lets the sampler trade a small loss in each curve's marginal fit for a gain in the joint bivariate-normal density, so the joint optimum is no longer the two curves' independent OLS optima. Fixing `rho` at zero recovers the published constants to within `r sprintf("%.1f%%", max(abs(param_table$rho0_pct_diff), na.rm = TRUE))` (largest difference across the six curve parameters), and the predicted ages to within a median of `r sprintf("%.1f%%", max(rho0_age_diff$median_abs_pct_diff))` (Monte Carlo and prior effects account for the residual). The 66% interval widths are similar (median ratio `r sprintf("%.2f", median(full_results_B$bayes_width66 / full_results_B$asp_width66))`).
 
 ## Summary
 
-**Test 1** (constant, OLS-derived calibration parameters) confirms that the GLS formulation is a valid, deployable equivalent of the Bayesian inversion: given the same calibration curve, the two methods produce essentially identical point estimates and interval widths, with the small residual difference attributable to GLS's softplus weight regularization. 
+**Test 1** (published constants) confirms that a Bayesian treatment of both amino acids returns the Asp-only age: with the same calibration and the same per-sample uncertainty, adding Glu changes the age by a median of `r sprintf("%.2f%%", median(abs(full_results_A$cf_pct_diff)))` (exact posterior; `r sprintf("%.1f%%", median(abs(full_results_A$pct_diff_median)))` with Monte Carlo noise) and leaves the interval width unchanged. This follows from the calibration residuals: the observed Asp-Glu correlation (`r sprintf("%.3f", cst$rho)`) is almost exactly the ratio of the two residual standard deviations (`r sprintf("%.3f", sA / sG)`), the value at which Glu receives zero weight.
 
-**Test 2** (independent joint Bayesian calibration refit) shows that a fully independent, end-to-end Bayesian pipeline, from raw D/L measurements to final age, arrives at somewhat different calibration curves than the manuscript's per-acid OLS fit, and consequently at somewhat different point-age estimates (median several percent, up to several times that for the most sensitive individual samples, an effect concentrated among the youngest, lowest-absolute-age samples where a small offset becomes a large percentage). The systematic trend, however, runs the other way with age: the refit predicts older ages at the young end and younger ages at the old end of the calibration range, consistent with the old-end young bias already identified in the LOOCV analysis. This divergence is a property of jointly estimating a shared residual correlation alongside two curves' shapes, not a bug or a convergence failure, and it does not materially change the width of the age uncertainty. Despite the conceptual elegance, the results amplify a known bias, and so we prefer the independent fitting approach.
+**Test 2** (independent joint Bayesian calibration refit) arrives at somewhat different calibration curves, and its ages differ from the Asp-only ages by a median of `r sprintf("%.1f%%", median(abs(full_results_B$pct_diff_median)))`, systematically with age. The divergence comes from estimating the residual correlation jointly with the curve shapes, not from a convergence failure, and its direction (younger ages at the old end) compounds the old-end young bias identified in the manuscript's leave-one-out cross-validation. The independent per-acid fits are therefore preferred.
 
-In summary, the GLS formulation provides a functionally equivalent to the Bayesian approach when using the same parameters and validates better against the LOOCV analysis than the full Bayesian calibration. In both cases the GLS is simpler to implement, and can be run with a spreadsheet or an interactive interface.
+## Numbers cited in the manuscript
+
+```{r manuscript_numbers, echo=FALSE}
+data.frame(
+  quantity = c(
+    "Test 1: median abs. % difference, two-acid vs. Asp-only (MCMC)",
+    "Test 1: median abs. % difference, two-acid vs. Asp-only (closed form)",
+    "Test 1: max abs. % difference (closed form)",
+    "Test 1: median 66% width ratio (MCMC)",
+    "Two-acid sigma at calibration level (equals Asp-only sigma)",
+    "Test 2: median abs. % difference",
+    "Test 2: max abs. % difference",
+    "Test 2: median % difference, < 50 ka",
+    "Test 2: median % difference, > 500 ka",
+    "Test 2: rho = 0 refit, max abs. % difference from published constants",
+    "Test 2: rho = 0 refit, median abs. % difference in predicted Asp age",
+    "Test 2: rho = 0 refit, median abs. % difference in predicted Glu age"
+  ),
+  value = c(
+    median(abs(full_results_A$pct_diff_median)),
+    median(abs(full_results_A$cf_pct_diff)),
+    max(abs(full_results_A$cf_pct_diff)),
+    median(full_results_A$bayes_width66 / full_results_A$asp_width66),
+    sqrt((sA^2 * sG^2 - C^2) / (sA^2 + sG^2 - 2 * C)),
+    median(abs(full_results_B$pct_diff_median)),
+    max(abs(full_results_B$pct_diff_median)),
+    median(full_results_B$pct_diff_median[young_B]),
+    median(full_results_B$pct_diff_median[old_B]),
+    max(abs(param_table$rho0_pct_diff), na.rm = TRUE),
+    rho0_age_diff$median_abs_pct_diff[1],
+    rho0_age_diff$median_abs_pct_diff[2]
+  )
+) |> knitr::kable(digits = 4)
+```
