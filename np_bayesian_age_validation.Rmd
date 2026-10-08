@@ -277,8 +277,9 @@ full_results_A |>
   left_join(np[, c("UAL", "core", "DL_Asp", "DL_Glu", "n_used")], by = "UAL") |>
   arrange(desc(abs(cf_pct_diff))) |>
   head(8) |>
+  mutate(glu_check = asp_ref$flag[match(UAL, np$UAL)]) |>
   select(UAL, core, published_age_ka, DL_Asp, DL_Glu, n_used, asp_age_ka,
-         cf_median_ka, cf_pct_diff, w_Glu) |>
+         cf_median_ka, cf_pct_diff, w_Glu, glu_check) |>
   knitr::kable(digits = 3,
                caption = "The eight samples with the largest closed-form two-acid vs. Asp-only differences")
 ```
@@ -295,7 +296,7 @@ data.frame(
 ) |> knitr::kable(digits = 2)
 ```
 
-Supplied with the published calibration constants, the two-acid Bayesian posterior returns the Asp-only age. Across the 140 calibration samples the median absolute difference in the posterior median is `r sprintf("%.1f%%", median(abs(full_results_A$pct_diff_median)))` for the MCMC estimate, of which most is Monte Carlo noise: the exact closed-form posterior differs from the Asp-only age by a median of `r sprintf("%.2f%%", median(abs(full_results_A$cf_pct_diff)))`. The 66% interval widths match (median ratio `r sprintf("%.2f", median(full_results_A$bayes_width66 / full_results_A$asp_width66))` for MCMC, `r sprintf("%.3f", median(full_results_A$cf_sigma_ratio))` closed form). The largest individual differences, up to `r sprintf("%.0f%%", max(abs(full_results_A$cf_pct_diff)))`, are in samples younger than 30 ka, where D/L values are low, measurement error makes up a large share of each sample's prediction variance, and the per-sample ratio of Asp to Glu prediction error departs from $\rho$. These are small relative to the ±32% half-width of the 66% interval.
+Supplied with the published calibration constants, the two-acid Bayesian posterior returns the Asp-only age. Across the 140 calibration samples the median absolute difference in the posterior median is `r sprintf("%.1f%%", median(abs(full_results_A$pct_diff_median)))` for the MCMC estimate, of which most is Monte Carlo noise: the exact closed-form posterior differs from the Asp-only age by a median of `r sprintf("%.2f%%", median(abs(full_results_A$cf_pct_diff)))`. The 66% interval widths match (median ratio `r sprintf("%.2f", median(full_results_A$bayes_width66 / full_results_A$asp_width66))` for MCMC, `r sprintf("%.3f", median(full_results_A$cf_sigma_ratio))` closed form). Differences exceeding 3% occur in only `r sum(abs(full_results_A$cf_pct_diff) > 3)` samples, all younger than `r ceiling(max(full_results_A$published_age_ka[abs(full_results_A$cf_pct_diff) > 3]) / 10) * 10` ka, of which `r sum(asp_ref$flag[abs(full_results_A$cf_pct_diff) > 3] != "ok")` are flagged by the Glu quality check. For each sample, leverage and measurement error move the Glu weight slightly away from zero, and the shift in log age equals that weight times the Asp-Glu log-age difference. It is therefore largest where the Glu weight departs most from zero or where the two ages disagree most (table above), and reaches several percent (at most `r sprintf("%.0f%%", max(abs(full_results_A$cf_pct_diff)))`). These shifts are small relative to the ±32% half-width of the 66% interval.
 
 ## Test 2: an independent joint Bayesian calibration refit
 

@@ -1971,16 +1971,17 @@ deviations, which is equivalent to the ratio of 66% interval widths.</p>
 <caption>The eight samples with the largest closed-form two-acid
 vs. Asp-only differences</caption>
 <colgroup>
-<col width="11%" />
-<col width="13%" />
-<col width="15%" />
-<col width="6%" />
-<col width="6%" />
-<col width="6%" />
 <col width="10%" />
-<col width="11%" />
-<col width="11%" />
-<col width="6%" />
+<col width="12%" />
+<col width="13%" />
+<col width="5%" />
+<col width="5%" />
+<col width="5%" />
+<col width="9%" />
+<col width="10%" />
+<col width="9%" />
+<col width="5%" />
+<col width="10%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -1994,6 +1995,7 @@ vs. Asp-only differences</caption>
 <th align="right">cf_median_ka</th>
 <th align="right">cf_pct_diff</th>
 <th align="right">w_Glu</th>
+<th align="left">glu_check</th>
 </tr>
 </thead>
 <tbody>
@@ -2008,6 +2010,7 @@ vs. Asp-only differences</caption>
 <td align="right">6.601</td>
 <td align="right">-7.908</td>
 <td align="right">-0.088</td>
+<td align="left">FAIL (&gt;99%)</td>
 </tr>
 <tr class="even">
 <td align="left">7468</td>
@@ -2020,6 +2023,7 @@ vs. Asp-only differences</caption>
 <td align="right">5.300</td>
 <td align="right">6.305</td>
 <td align="right">0.116</td>
+<td align="left">check (&gt;95%)</td>
 </tr>
 <tr class="odd">
 <td align="left">21669, 21695</td>
@@ -2032,6 +2036,7 @@ vs. Asp-only differences</caption>
 <td align="right">3.171</td>
 <td align="right">-6.263</td>
 <td align="right">0.421</td>
+<td align="left">ok</td>
 </tr>
 <tr class="even">
 <td align="left">6140</td>
@@ -2044,6 +2049,7 @@ vs. Asp-only differences</caption>
 <td align="right">8.565</td>
 <td align="right">-4.543</td>
 <td align="right">-0.093</td>
+<td align="left">check (&gt;95%)</td>
 </tr>
 <tr class="odd">
 <td align="left">6134</td>
@@ -2056,6 +2062,7 @@ vs. Asp-only differences</caption>
 <td align="right">4.449</td>
 <td align="right">4.161</td>
 <td align="right">0.055</td>
+<td align="left">FAIL (&gt;99%)</td>
 </tr>
 <tr class="even">
 <td align="left">0562uH</td>
@@ -2068,6 +2075,7 @@ vs. Asp-only differences</caption>
 <td align="right">15.312</td>
 <td align="right">3.634</td>
 <td align="right">-0.194</td>
+<td align="left">ok</td>
 </tr>
 <tr class="odd">
 <td align="left">0640uH</td>
@@ -2080,6 +2088,7 @@ vs. Asp-only differences</caption>
 <td align="right">32.675</td>
 <td align="right">2.794</td>
 <td align="right">0.151</td>
+<td align="left">ok</td>
 </tr>
 <tr class="even">
 <td align="left">6510</td>
@@ -2092,6 +2101,7 @@ vs. Asp-only differences</caption>
 <td align="right">62.784</td>
 <td align="right">2.573</td>
 <td align="right">0.083</td>
+<td align="left">ok</td>
 </tr>
 </tbody>
 </table>
@@ -2131,11 +2141,14 @@ samples the median absolute difference in the posterior median is 0.3%
 for the MCMC estimate, of which most is Monte Carlo noise: the exact
 closed-form posterior differs from the Asp-only age by a median of
 0.16%. The 66% interval widths match (median ratio 1.00 for MCMC, 1.000
-closed form). The largest individual differences, up to 8%, are in
-samples younger than 30 ka, where D/L values are low, measurement error
-makes up a large share of each sample’s prediction variance, and the
-per-sample ratio of Asp to Glu prediction error departs from <span class="math inline">\(\rho\)</span>. These are small relative to the
-±32% half-width of the 66% interval.</p>
+closed form). Differences exceeding 3% occur in only 6 samples, all
+younger than 20 ka, of which 4 are flagged by the Glu quality check. For
+each sample, leverage and measurement error move the Glu weight slightly
+away from zero, and the shift in log age equals that weight times the
+Asp-Glu log-age difference. It is therefore largest where the Glu weight
+departs most from zero or where the two ages disagree most (table
+above), and reaches several percent (at most 8%). These shifts are small
+relative to the ±32% half-width of the 66% interval.</p>
 </div>
 </div>
 <div id="test-2-an-independent-joint-bayesian-calibration-refit" class="section level2">
